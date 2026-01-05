@@ -49,6 +49,20 @@ input[type=range] {
     cursor: pointer;
 }
 
+.app-filter-btn {
+    transition: all 0.3s ease;
+}
+
+.app-filter-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.app-filter-btn.active {
+    background-color: #2563eb !important;
+    color: white !important;
+}
+
 .deadline-urgent { animation: pulse 2s infinite; }
 @keyframes pulse {
     0%, 100% { opacity: 1; }

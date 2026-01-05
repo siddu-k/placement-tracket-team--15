@@ -165,14 +165,30 @@ window.switchView = function(v) {
 
     const hMap = {
         dashboard: ['Dashboard', 'Candidate eligibility profile.'],
-        map: ['Global Map', 'Corporate partner locations.'],
-        jobs: ['Job Board', 'Active campus drives.']
+        map: ['Job Locations', 'View job opportunities on 3D globe.'],
+        jobs: ['Job Board', 'Active campus drives.'],
+        applications: ['My Applications', 'Track your application status.'],
+        profile: ['My Profile', 'Update your information.']
     };
     if(hMap[v]) {
         document.getElementById('v-title').innerText = hMap[v][0];
         document.getElementById('v-sub').innerText = hMap[v][1];
     }
     
+    // Load applications when viewing that section
+    if(v === 'applications') {
+        updateApplicationsList();
+    }
+    
+    // Load profile data when viewing profile
+    if(v === 'profile') {
+        loadProfileData();
+    }
+    
+    // Ensure map dots are updated when switching to map view
+    if(v === 'map') {
+        updateMapDots(COMPANIES.filter(c => c.minCGPA <= curCGPA));
+    }
     if(v === 'map' && !scene) {
         console.log('Initializing 3D globe...');
         init3D();
@@ -300,12 +316,17 @@ function init3D() {
     }
     animate();
     
+    // Setup globe hover tooltip
+    createGlobeTooltip();
+    setupGlobeHover();
+    
     updateCoreUI();
 }
 
 function updateMapDots(items) {
     if(!markers) return;
     markers.clear();
+    
     items.forEach(c => {
         const phi = (90 - c.lat) * (Math.PI / 180);
         const theta = (c.lng + 180) * (Math.PI / 180);
@@ -320,7 +341,74 @@ function updateMapDots(items) {
             r * Math.cos(phi),
             r * Math.sin(phi) * Math.sin(theta)
         );
+        
+        // Store company data for hover tooltip
+        dot.userData = {
+            companyName: c.name,
+            role: c.role,
+            location: c.location
+        };
+        
         markers.add(dot);
+    });
+}
+
+// Globe hover tooltip
+let globeTooltip = null;
+function createGlobeTooltip() {
+    if (!globeTooltip) {
+        globeTooltip = document.createElement('div');
+        globeTooltip.id = 'globe-tooltip';
+        globeTooltip.style.cssText = `
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        `;
+        document.body.appendChild(globeTooltip);
+    }
+}
+
+function setupGlobeHover() {
+    if (!renderer || !camera || !markers) return;
+    
+    const canvas = renderer.domElement;
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    
+    canvas.addEventListener('mousemove', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+        
+        raycaster.setFromCamera(mouse, camera);
+        const intersects = raycaster.intersectObjects(markers.children);
+        
+        if (intersects.length > 0 && intersects[0].object.userData.companyName) {
+            const data = intersects[0].object.userData;
+            globeTooltip.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 4px;">${data.companyName}</div>
+                <div style="font-size: 12px; color: #fbbf24;">${data.role}</div>
+                <div style="font-size: 11px; color: #9ca3af; margin-top: 4px;">${data.location}</div>
+            `;
+            globeTooltip.style.display = 'block';
+            globeTooltip.style.left = event.clientX + 15 + 'px';
+            globeTooltip.style.top = event.clientY + 15 + 'px';
+            canvas.style.cursor = 'pointer';
+        } else {
+            globeTooltip.style.display = 'none';
+            canvas.style.cursor = 'grab';
+        }
+    });
+    
+    canvas.addEventListener('mouseleave', () => {
+        globeTooltip.style.display = 'none';
     });
 }
 
@@ -336,6 +424,7 @@ async function loadUserApplications() {
             .where('userId', '==', curUserId)
             .get();
         userApplications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`✅ Loaded ${userApplications.length} applications`);
     } catch (error) {
         console.error('Error loading applications:', error);
     }
@@ -445,11 +534,11 @@ window.closeApplyModal = function() {
 }
 
 window.submitApplication = async function() {
-    const companyId = parseInt(document.getElementById('apply-modal').dataset.companyId);
+    const companyId = document.getElementById('apply-modal').dataset.companyId;
     const reason = document.getElementById('apply-reason').value;
     
     if (!reason.trim()) {
-        alert('Please provide a reason for applying');
+        alert('⚠️ Please provide a reason for applying');
         return;
     }
     
@@ -467,17 +556,25 @@ window.submitApplication = async function() {
         try {
             await db.collection('applications').add(application);
             console.log('✅ Application saved to Firebase');
+            
+            userApplications.push(application);
+            closeApplyModal();
+            updateCoreUI();
+            
+            // Update My Applications if on that view
+            if (!document.getElementById('view-applications').classList.contains('hidden')) {
+                updateApplicationsList();
+            }
+            
+            const company = COMPANIES.find(c => c.id === companyId);
+            alert(`✅ Application submitted to ${company.name}!\n\nYou'll receive updates via the placement officer.`);
         } catch (error) {
             console.error('Error saving application:', error);
+            alert('❌ Failed to submit application. Please try again.');
         }
+    } else {
+        alert('❌ Firebase not configured. Please check your connection.');
     }
-    
-    userApplications.push(application);
-    closeApplyModal();
-    updateCoreUI();
-    
-    const company = COMPANIES.find(c => c.id === companyId);
-    alert(`✅ Application submitted to ${company.name}!\n\nYou'll receive updates via email.`);
 }
 
 // ========== EVENT LISTENERS ==========
@@ -530,6 +627,169 @@ document.addEventListener('click', (e) => {
         panel.classList.add('hidden');
     }
 });
+
+// My Applications Functions
+function updateApplicationsList() {
+    const listContainer = document.getElementById('applications-list');
+    if (!listContainer) return;
+
+    // Get current filter
+    const activeFilter = document.querySelector('.app-filter-btn.active')?.dataset.status || 'all';
+    
+    // Filter applications
+    let filteredApps = userApplications;
+    if (activeFilter !== 'all') {
+        filteredApps = userApplications.filter(app => app.status === activeFilter);
+    }
+
+    // Sort by date (most recent first)
+    filteredApps.sort((a, b) => new Date(b.appliedAt) - new Date(a.appliedAt));
+
+    // Clear and render
+    listContainer.innerHTML = '';
+
+    if (filteredApps.length === 0) {
+        listContainer.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">No applications found</p>
+            </div>
+        `;
+        return;
+    }
+
+    filteredApps.forEach(app => {
+        const company = COMPANIES.find(c => c.id === app.companyId);
+        if (!company) return;
+
+        const statusColors = {
+            pending: 'bg-yellow-100 text-yellow-800',
+            accepted: 'bg-green-100 text-green-800',
+            rejected: 'bg-red-100 text-red-800'
+        };
+
+        const appCard = document.createElement('div');
+        appCard.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow';
+        appCard.innerHTML = `
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">${company.name}</h3>
+                    <p class="text-sm text-gray-600">${company.role}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs font-medium ${statusColors[app.status] || statusColors.pending}">
+                    ${app.status.toUpperCase()}
+                </span>
+            </div>
+            <div class="space-y-2 text-sm text-gray-600">
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Package: ₹${company.pkg} LPA</span>
+                </div>
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>Applied: ${new Date(app.appliedAt).toLocaleDateString()}</span>
+                </div>
+                <div class="flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span>${company.location}</span>
+                </div>
+                ${app.reason ? `
+                <div class="mt-3 pt-3 border-t border-gray-200">
+                    <p class="text-xs text-gray-500">Why you're interested:</p>
+                    <p class="text-sm text-gray-700 mt-1">${app.reason}</p>
+                </div>
+                ` : ''}
+            </div>
+        `;
+        listContainer.appendChild(appCard);
+    });
+}
+
+window.filterApplications = function(status) {
+    // Update active button
+    document.querySelectorAll('.app-filter-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    
+    const activeBtn = document.querySelector(`[data-status="${status}"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+    }
+
+    updateApplicationsList();
+};
+
+// Profile Management Functions
+window.loadProfileData = async function() {
+    if (!db || !curUserId) {
+        console.error('❌ Firebase not configured or user not logged in');
+        return;
+    }
+    
+    try {
+        const userDoc = await db.collection('users').doc(curUserId).get();
+        if (userDoc.exists) {
+            const userData = userDoc.data();
+            document.getElementById('profile-name').value = userData.name || '';
+            document.getElementById('profile-email').value = userData.email || '';
+            document.getElementById('profile-roll').value = userData.rollNumber || '';
+            document.getElementById('profile-branch').value = userData.branch || 'CSE';
+            document.getElementById('profile-year').value = userData.year || '1';
+            document.getElementById('profile-cgpa').value = userData.cgpa || '0';
+        }
+    } catch (error) {
+        console.error('Error loading profile:', error);
+        alert('❌ Failed to load profile data');
+    }
+};
+
+window.saveProfile = async function(event) {
+    event.preventDefault();
+    
+    if (!db || !curUserId) {
+        alert('❌ Firebase not configured');
+        return;
+    }
+    
+    const updatedData = {
+        name: document.getElementById('profile-name').value,
+        rollNumber: document.getElementById('profile-roll').value,
+        branch: document.getElementById('profile-branch').value,
+        year: parseInt(document.getElementById('profile-year').value),
+        cgpa: parseFloat(document.getElementById('profile-cgpa').value)
+    };
+    
+    try {
+        await db.collection('users').doc(curUserId).update(updatedData);
+        
+        // Update local variables
+        curBranch = updatedData.branch;
+        curCGPA = updatedData.cgpa;
+        
+        // Update CGPA slider
+        document.getElementById('cgpa-slider').value = curCGPA;
+        
+        // Refresh UI
+        updateCoreUI();
+        generateNotifications();
+        
+        alert('✅ Profile updated successfully!');
+    } catch (error) {
+        console.error('Error updating profile:', error);
+        alert('❌ Failed to update profile');
+    }
+};
 
 window.addEventListener('resize', () => {
     if (renderer && !document.getElementById('view-map').classList.contains('hidden')) {

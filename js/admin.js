@@ -219,7 +219,9 @@ window.switchView = function(v) {
     if(active) active.classList.add('sidebar-active');
 
     const hMap = {
-        dashboard: ['Analytics Dashboard', 'Real-time placement statistics'],
+        dashboard: ['Dashboard', 'Overview and recent activity'],
+        analytics: ['Analytics', 'Visual insights and statistics'],
+        updates: ['Updates & Announcements', 'Post updates for students'],
         students: ['Registered Students', 'View all student profiles'],
         drives: ['Placement Drives', 'Manage campus recruitment drives'],
         applications: ['Student Applications', 'Review and manage applications']
@@ -227,6 +229,16 @@ window.switchView = function(v) {
     if(hMap[v]) {
         document.getElementById('v-title').innerText = hMap[v][0];
         document.getElementById('v-sub').innerText = hMap[v][1];
+    }
+    
+    // Load analytics charts when viewing analytics
+    if(v === 'analytics') {
+        loadAnalytics();
+    }
+    
+    // Load updates when viewing updates
+    if(v === 'updates') {
+        loadUpdates();
     }
 }
 

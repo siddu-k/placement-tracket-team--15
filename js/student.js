@@ -305,11 +305,7 @@ function init3D() {
     function animate() {
         requestAnimationFrame(animate);
         
-        if (!isDragging) {
-            globe.rotation.y += 0.001;
-            clouds.rotation.y += 0.0015; // Clouds move slightly faster
-            markers.rotation.y += 0.001;
-        }
+        // Removed auto-rotation - user controls globe movement
         
         stars.rotation.y += 0.0001;
         renderer.render(scene, camera);

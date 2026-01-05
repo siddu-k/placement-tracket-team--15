@@ -63,6 +63,10 @@
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         <span class="font-bold text-sm">Profile</span>
                     </button>
+                    <button onclick="switchView('ai-helper')" id="btn-ai-helper" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                        <span class="font-bold text-sm">AI Helper</span>
+                    </button>
                 </div>
             </div>
 
@@ -250,6 +254,133 @@
                             </button>
                         </div>
                     </form>
+                </div>
+            </div>
+
+            <!-- Job Detail View -->
+            <div id="view-job-detail" class="content-view hidden p-6 md:p-10">
+                <button onclick="goBackFromJobDetail()" class="mb-6 flex items-center space-x-2 text-slate-600 hover:text-blue-600 font-bold transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                    <span>Back</span>
+                </button>
+                
+                <div class="bg-white p-8 md:p-12 rounded-[3rem] shadow-lg">
+                    <!-- Company Header -->
+                    <div class="flex items-start justify-between mb-8">
+                        <div class="flex items-center space-x-6">
+                            <div id="detail-logo" class="w-20 h-20 bg-blue-900 text-white rounded-2xl flex items-center justify-center font-black text-3xl italic">G</div>
+                            <div>
+                                <h1 id="detail-company" class="text-4xl font-black text-slate-900 italic mb-2">Google</h1>
+                                <p id="detail-role" class="text-xl text-blue-600 font-bold">Software Engineer</p>
+                            </div>
+                        </div>
+                        <span id="detail-applied-badge" class="hidden bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm font-black">APPLIED</span>
+                    </div>
+
+                    <!-- Key Stats Grid -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Package</p>
+                            <p id="detail-package" class="text-2xl font-black text-blue-600">₹12 LPA</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Min CGPA</p>
+                            <p id="detail-cgpa" class="text-2xl font-black text-slate-800">7.0</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Location</p>
+                            <p id="detail-location" class="text-lg font-black text-slate-800">Bangalore</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-2xl">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">Deadline</p>
+                            <p id="detail-deadline" class="text-lg font-black text-red-500">Dec 31, 2025</p>
+                        </div>
+                    </div>
+
+                    <!-- Description Section -->
+                    <div class="mb-8">
+                        <h3 class="text-xl font-black text-slate-900 mb-4">Job Description</h3>
+                        <div id="detail-description" class="text-slate-700 leading-relaxed whitespace-pre-line">
+                            Loading...
+                        </div>
+                    </div>
+
+                    <!-- Additional Details -->
+                    <div class="grid md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h4 class="text-sm font-black text-slate-900 uppercase mb-3">Eligible Branches</h4>
+                            <div id="detail-branches" class="flex flex-wrap gap-2">
+                                <span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">CSE</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-black text-slate-900 uppercase mb-3">Region</h4>
+                            <p id="detail-region" class="text-slate-700 font-bold">India</p>
+                        </div>
+                    </div>
+
+                    <!-- Apply Button -->
+                    <div class="flex justify-end">
+                        <button id="detail-apply-btn" onclick="openApplyModalFromDetail()" class="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl">
+                            Apply Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Helper View -->
+            <div id="view-ai-helper" class="content-view hidden p-6 md:p-10">
+                <div class="bg-white p-8 rounded-[3rem] shadow-lg h-[calc(100vh-200px)] flex flex-col">
+                    <div class="mb-6">
+                        <h2 class="text-3xl font-black text-slate-900 italic mb-2">AI Job Assistant</h2>
+                        <p class="text-sm text-slate-500">Ask me anything about job opportunities, eligibility, or get personalized recommendations</p>
+                    </div>
+                    
+                    <!-- Chat Messages -->
+                    <div id="ai-chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-6 custom-scrollbar">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                            </div>
+                            <div class="bg-blue-50 rounded-2xl p-4 max-w-[80%]">
+                                <p class="text-sm text-slate-700">Hello! I'm your AI placement assistant. I can help you with:</p>
+                                <ul class="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
+                                    <li>Find jobs matching your CGPA (${curCGPA})</li>
+                                    <li>Get detailed info about specific companies</li>
+                                    <li>Compare job opportunities</li>
+                                    <li>Answer questions about eligibility</li>
+                                </ul>
+                                <p class="mt-2 text-sm text-slate-700">What would you like to know?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Suggested Questions -->
+                    <div id="ai-suggestions" class="mb-4 flex flex-wrap gap-2">
+                        <button onclick="askAI('What jobs am I eligible for?')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all">
+                            What jobs am I eligible for?
+                        </button>
+                        <button onclick="askAI('Show me highest paying jobs')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all">
+                            Highest paying jobs
+                        </button>
+                        <button onclick="askAI('Jobs with urgent deadlines')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold text-slate-700 transition-all">
+                            Urgent deadlines
+                        </button>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="flex space-x-3">
+                        <input type="text" id="ai-input" placeholder="Ask about jobs, companies, or eligibility..." class="flex-1 px-6 py-4 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium" onkeypress="if(event.key==='Enter') sendAIMessage()">
+                        <button onclick="sendAIMessage()" id="ai-send-btn" class="px-8 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </main>

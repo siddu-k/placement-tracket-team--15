@@ -92,7 +92,7 @@ function updateCoreUI() {
             const isApplied = userApplications.some(app => app.companyId === c.id);
             
             return `
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all cursor-pointer" onclick="openApplyModal(${c.id})">
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all cursor-pointer" onclick="showJobDetail('${c.id}')">
                 <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center space-x-3">
                         <div class="w-12 h-12 bg-blue-900 text-white rounded-xl flex items-center justify-center font-black italic text-sm">${c.name[0]}</div>
@@ -156,7 +156,7 @@ function updateCoreUI() {
             const description = c.description || 'No description provided';
             
             return `
-            <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer" onmouseenter="showJobTooltip(event, ${c.id})" onmouseleave="hideJobTooltip()">
+            <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer" onclick="showJobDetail('${c.id}')" onmouseenter="showJobTooltip(event, ${c.id})" onmouseleave="hideJobTooltip()">
                 ${isUrgent ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-black px-4 py-1 rounded-bl-xl uppercase deadline-urgent">Urgent</div>' : ''}
                 <div class="bg-slate-50 w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl italic text-slate-300 group-hover:bg-blue-900 group-hover:text-white transition-all mb-6 md:mb-8">${c.name[0]}</div>
                 <h4 class="text-lg md:text-xl font-black text-slate-900 italic mb-1">${c.name}</h4>
@@ -202,7 +202,8 @@ window.switchView = function(v) {
         map: ['Job Locations', 'View job opportunities on 3D globe.'],
         jobs: ['Job Board', 'Active campus drives.'],
         applications: ['My Applications', 'Track your application status.'],
-        profile: ['My Profile', 'Update your information.']
+        profile: ['My Profile', 'Update your information.'],
+        'ai-helper': ['AI Job Assistant', 'Get personalized job recommendations.']
     };
     if(hMap[v]) {
         document.getElementById('v-title').innerText = hMap[v][0];
@@ -217,6 +218,11 @@ window.switchView = function(v) {
     // Load profile data when viewing profile
     if(v === 'profile') {
         loadProfileData();
+    }
+    
+    // Initialize AI helper
+    if(v === 'ai-helper') {
+        initAIHelper();
     }
     
     // Ensure map dots are updated when switching to map view
@@ -901,6 +907,282 @@ window.saveProfile = async function(event) {
         alert('❌ Failed to update profile');
     }
 };
+
+// Job Detail View Functions
+let previousView = 'dashboard';
+let currentJobId = null;
+
+window.showJobDetail = function(jobId) {
+    const company = COMPANIES.find(c => c.id === jobId);
+    if (!company) {
+        alert('❌ Job not found');
+        return;
+    }
+    
+    // Store previous view and current job
+    const currentView = document.querySelector('.content-view:not(.hidden)');
+    if (currentView) {
+        previousView = currentView.id.replace('view-', '');
+    }
+    currentJobId = jobId;
+    
+    // Check if applied
+    const isApplied = userApplications.some(app => app.companyId === jobId);
+    
+    // Populate detail view
+    document.getElementById('detail-logo').textContent = company.name[0];
+    document.getElementById('detail-company').textContent = company.name;
+    document.getElementById('detail-role').textContent = company.role;
+    document.getElementById('detail-package').textContent = company.package;
+    document.getElementById('detail-cgpa').textContent = company.minCGPA;
+    document.getElementById('detail-location').textContent = company.location;
+    document.getElementById('detail-deadline').textContent = formatDeadline(company.deadline);
+    document.getElementById('detail-description').textContent = company.description || 'No description provided for this position.';
+    document.getElementById('detail-region').textContent = company.region || 'Global';
+    
+    // Show/hide applied badge
+    const appliedBadge = document.getElementById('detail-applied-badge');
+    if (isApplied) {
+        appliedBadge.classList.remove('hidden');
+    } else {
+        appliedBadge.classList.add('hidden');
+    }
+    
+    // Update apply button
+    const applyBtn = document.getElementById('detail-apply-btn');
+    if (isApplied) {
+        applyBtn.textContent = '✓ Applied';
+        applyBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+        applyBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        applyBtn.disabled = true;
+    } else {
+        applyBtn.textContent = 'Apply Now';
+        applyBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+        applyBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        applyBtn.disabled = false;
+    }
+    
+    // Populate branches
+    const branchesContainer = document.getElementById('detail-branches');
+    if (company.branch && company.branch.length > 0) {
+        branchesContainer.innerHTML = company.branch.map(b => 
+            `<span class="bg-blue-50 text-blue-700 px-3 py-1 rounded-lg text-xs font-bold">${b}</span>`
+        ).join('');
+    } else {
+        branchesContainer.innerHTML = '<p class="text-slate-500 text-sm">All branches eligible</p>';
+    }
+    
+    // Switch to detail view
+    document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden'));
+    document.getElementById('view-job-detail').classList.remove('hidden');
+    
+    // Update header
+    document.getElementById('v-title').textContent = company.name;
+    document.getElementById('v-sub').textContent = 'Job Details';
+};
+
+window.goBackFromJobDetail = function() {
+    // Return to previous view
+    document.querySelectorAll('.content-view').forEach(el => el.classList.add('hidden'));
+    document.getElementById(`view-${previousView}`).classList.remove('hidden');
+    
+    // Update navigation
+    document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('sidebar-active');
+        b.classList.add('text-slate-500');
+    });
+    const activeBtn = document.getElementById(`btn-${previousView}`);
+    if (activeBtn) activeBtn.classList.add('sidebar-active');
+    
+    // Update header
+    const hMap = {
+        dashboard: ['Dashboard', 'Candidate eligibility profile.'],
+        map: ['Job Locations', 'View job opportunities on 3D globe.'],
+        jobs: ['Job Board', 'Active campus drives.'],
+        applications: ['My Applications', 'Track your application status.'],
+        profile: ['My Profile', 'Update your information.']
+    };
+    if (hMap[previousView]) {
+        document.getElementById('v-title').textContent = hMap[previousView][0];
+        document.getElementById('v-sub').textContent = hMap[previousView][1];
+    }
+};
+
+window.openApplyModalFromDetail = function() {
+    if (currentJobId) {
+        openApplyModal(currentJobId);
+    }
+};
+
+// ========== AI HELPER FUNCTIONS ==========
+const MIMO_API_KEY = 'sk-sbeq1xsfr6li9541g23fdb7q384t9cfs1atmft2utrtjjjf3';
+const PROXY_URL = 'http://localhost:3001/proxy/xiaomi';
+
+let aiInitialized = false;
+
+function initAIHelper() {
+    if (aiInitialized) return;
+    aiInitialized = true;
+    
+    // Update welcome message with current CGPA
+    const welcomeMsg = document.querySelector('#ai-chat-messages .bg-blue-50 p');
+    if (welcomeMsg && welcomeMsg.textContent.includes('${curCGPA}')) {
+        welcomeMsg.textContent = welcomeMsg.textContent.replace('${curCGPA}', curCGPA.toFixed(1));
+    }
+}
+
+window.askAI = function(question) {
+    document.getElementById('ai-input').value = question;
+    sendAIMessage();
+};
+
+window.sendAIMessage = async function() {
+    const input = document.getElementById('ai-input');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    const chatContainer = document.getElementById('ai-chat-messages');
+    const sendBtn = document.getElementById('ai-send-btn');
+    
+    // Add user message
+    addChatMessage(message, 'user');
+    input.value = '';
+    
+    // Disable send button
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<svg class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    
+    try {
+        // Prepare context about available jobs
+        const eligibleJobs = COMPANIES.filter(c => c.minCGPA <= curCGPA);
+        const jobContext = eligibleJobs.map(c => 
+            `${c.name} - ${c.role} | Package: ${c.package} | Min CGPA: ${c.minCGPA} | Location: ${c.location} | Deadline: ${c.deadline} | Branches: ${c.branch?.join(', ') || 'All'}`
+        ).join('\n');
+        
+        const systemPrompt = `You are a helpful placement assistant for a student with CGPA ${curCGPA} in ${curBranch} branch. 
+Available job opportunities:
+${jobContext}
+
+Student has already applied to: ${userApplications.map(app => {
+    const company = COMPANIES.find(c => c.id === app.companyId);
+    return company ? company.name : 'Unknown';
+}).join(', ') || 'None'}
+
+Provide helpful, concise answers about job eligibility, recommendations, and details. Be friendly and encouraging.`;
+
+        const response = await fetch(PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': MIMO_API_KEY
+            },
+            body: JSON.stringify({
+                model: 'mimo-v2-flash',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: message }
+                ],
+                max_completion_tokens: 1024,
+                temperature: 0.3,
+                top_p: 0.95,
+                stream: false,
+                stop: null,
+                frequency_penalty: 0,
+                presence_penalty: 0,
+                thinking: {
+                    type: 'disabled'
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('API Error:', errorData);
+            throw new Error(`AI service error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+        
+        addChatMessage(aiResponse, 'ai');
+    } catch (error) {
+        console.error('AI Error:', error);
+        addChatMessage('Sorry, I couldn\'t process your request. Please make sure the local proxy server is running (node local-proxy.js).', 'ai');
+    } finally {
+        // Re-enable send button
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>';
+    }
+};
+
+function addChatMessage(text, sender) {
+    const chatContainer = document.getElementById('ai-chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'flex items-start space-x-3';
+    
+    // Format markdown for AI messages
+    let formattedText = sender === 'ai' ? formatMarkdown(text) : escapeHtml(text);
+    
+    if (sender === 'user') {
+        messageDiv.classList.add('flex-row-reverse', 'space-x-reverse');
+        messageDiv.innerHTML = `
+            <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+            </div>
+            <div class="bg-slate-700 text-white rounded-2xl p-4 max-w-[80%]">
+                <p class="text-sm">${formattedText}</p>
+            </div>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div class="bg-blue-50 rounded-2xl p-4 max-w-[80%]">
+                <div class="text-sm text-slate-700 whitespace-pre-line markdown-content">${formattedText}</div>
+            </div>
+        `;
+    }
+    
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatMarkdown(text) {
+    // Escape HTML first
+    let formatted = escapeHtml(text);
+    
+    // Convert markdown to HTML
+    // Bold: **text** or __text__
+    formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong class="font-black">$1</strong>');
+    formatted = formatted.replace(/__(.+?)__/g, '<strong class="font-black">$1</strong>');
+    
+    // Italic: *text* or _text_
+    formatted = formatted.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
+    formatted = formatted.replace(/_(.+?)_/g, '<em class="italic">$1</em>');
+    
+    // Bullet points: - item or * item
+    formatted = formatted.replace(/^[\-\*]\s+(.+)$/gm, '<li class="ml-4">• $1</li>');
+    
+    // Numbers: 1. item
+    formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-4">$1</li>');
+    
+    // Code: `code`
+    formatted = formatted.replace(/`(.+?)`/g, '<code class="bg-slate-200 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
+    
+    return formatted;
+}
 
 window.addEventListener('resize', () => {
     if (renderer && !document.getElementById('view-map').classList.contains('hidden')) {

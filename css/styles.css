@@ -81,3 +81,26 @@ input[type=range] {
     .sidebar { transform: translateX(-100%); }
     .sidebar.open { transform: translateX(0); }
 }
+
+/* Markdown styling in AI chat */
+.markdown-content strong {
+    font-weight: 800;
+    color: #1e293b;
+}
+
+.markdown-content em {
+    font-style: italic;
+}
+
+.markdown-content code {
+    background-color: #e2e8f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+}
+
+.markdown-content li {
+    margin-left: 1rem;
+    margin-bottom: 0.25rem;
+}

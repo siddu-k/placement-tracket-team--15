@@ -6,6 +6,8 @@ let students = [];
 let drives = [];
 let applications = [];
 let registeredCompanies = []; // Company user accounts
+let crtTests = []; // CRT training tests
+let questionCounter = 0; // For dynamic question fields
 
 // Check if user is logged in as officer
 if (!sessionStorage.getItem('userRole') || sessionStorage.getItem('userRole') !== 'officer') {
@@ -22,6 +24,7 @@ loadStudents();
 loadDrives();
 loadApplications();
 loadRegisteredCompanies();
+loadCRTTests();
 
 // ========== LOAD STUDENTS ==========
 async function loadStudents() {
@@ -242,7 +245,8 @@ window.switchView = function(v) {
         updates: ['Updates & Announcements', 'Post updates for students'],
         students: ['Registered Students', 'View all student profiles'],
         drives: ['Placement Drives', 'Manage campus recruitment drives'],
-        applications: ['Student Applications', 'Review and manage applications']
+        applications: ['Student Applications', 'Review and manage applications'],
+        'crt-training': ['CRT Training & Assessment', 'Create and manage online tests']
     };
     if(hMap[v]) {
         document.getElementById('v-title').innerText = hMap[v][0];
@@ -257,6 +261,11 @@ window.switchView = function(v) {
     // Load updates when viewing updates
     if(v === 'updates') {
         loadUpdates();
+    }
+    
+    // Load CRT tests when viewing CRT training
+    if(v === 'crt-training') {
+        loadCRTTests();
     }
 }
 
@@ -567,3 +576,346 @@ document.getElementById('update-form')?.addEventListener('submit', async (e) => 
         alert('❌ Failed to post update');
     }
 });
+
+// ========== CRT TRAINING FUNCTIONS ==========
+
+// Load all CRT tests
+async function loadCRTTests() {
+    if (!db) return;
+    
+    try {
+        const snapshot = await db.collection('crt-tests').orderBy('createdAt', 'desc').get();
+        crtTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('Loaded CRT tests:', crtTests.length);
+        updateCRTStats();
+        updateCRTTestsList();
+    } catch (error) {
+        console.error('Error loading CRT tests:', error);
+    }
+}
+
+// Update CRT statistics
+function updateCRTStats() {
+    const totalTests = crtTests.length;
+    const now = new Date();
+    const activeTests = crtTests.filter(t => {
+        const start = new Date(t.startTime);
+        const end = new Date(t.endTime);
+        return start <= now && now <= end;
+    }).length;
+    
+    const totalQuestions = crtTests.reduce((sum, t) => sum + (t.questions?.length || 0), 0);
+    
+    document.getElementById('stat-total-tests').textContent = totalTests;
+    document.getElementById('stat-active-tests').textContent = activeTests;
+    document.getElementById('stat-total-questions').textContent = totalQuestions;
+    document.getElementById('stat-avg-participation').textContent = '0%'; // Placeholder
+}
+
+// Update CRT tests list
+function updateCRTTestsList() {
+    const container = document.getElementById('crt-tests-list');
+    if (!container) return;
+    
+    const activeFilter = document.querySelector('.test-filter-btn.active')?.dataset.filter || 'all';
+    const now = new Date();
+    
+    let filteredTests = crtTests;
+    if (activeFilter === 'live') {
+        filteredTests = crtTests.filter(t => {
+            const start = new Date(t.startTime);
+            const end = new Date(t.endTime);
+            return start <= now && now <= end;
+        });
+    } else if (activeFilter === 'upcoming') {
+        filteredTests = crtTests.filter(t => new Date(t.startTime) > now);
+    } else if (activeFilter === 'completed') {
+        filteredTests = crtTests.filter(t => new Date(t.endTime) < now);
+    }
+    
+    if (filteredTests.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <p class="mt-2 text-sm text-gray-500">No tests found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredTests.map(test => {
+        const start = new Date(test.startTime);
+        const end = new Date(test.endTime);
+        const isLive = start <= now && now <= end;
+        const isUpcoming = start > now;
+        const isCompleted = end < now;
+        
+        let statusBadge = '';
+        let statusClass = '';
+        if (isLive) {
+            statusBadge = '<span class="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse">● Live</span>';
+            statusClass = 'border-green-300 bg-green-50';
+        } else if (isUpcoming) {
+            statusBadge = '<span class="bg-blue-500 text-white px-3 py-1 rounded-full text-xs font-bold">Upcoming</span>';
+            statusClass = 'border-blue-200';
+        } else {
+            statusBadge = '<span class="bg-gray-400 text-white px-3 py-1 rounded-full text-xs font-bold">Completed</span>';
+            statusClass = 'border-gray-200 opacity-75';
+        }
+        
+        return `
+            <div class="bg-white border-2 ${statusClass} rounded-2xl p-6 hover:shadow-lg transition-all">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-black text-slate-900">${test.name}</h3>
+                        <p class="text-sm text-slate-600 mt-1">${test.module} - ${test.module}</p>
+                    </div>
+                    ${statusBadge}
+                </div>
+                
+                <div class="grid grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold mb-1">Questions</p>
+                        <p class="text-lg font-black text-slate-900">${test.questions?.length || 0}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold mb-1">Duration</p>
+                        <p class="text-lg font-black text-slate-900">${test.duration} min</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold mb-1">Start Time</p>
+                        <p class="text-sm font-bold text-slate-700">${start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500 font-bold mb-1">End Time</p>
+                        <p class="text-sm font-bold text-slate-700">${end.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-2">
+                    <button onclick="viewTestDetails('${test.id}')" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-700 transition-all">
+                        View Details
+                    </button>
+                    <button onclick="deleteTest('${test.id}')" class="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition-all">
+                        Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Filter tests
+window.filterTests = function(filter) {
+    document.querySelectorAll('.test-filter-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    
+    const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+    }
+    
+    updateCRTTestsList();
+};
+
+// Show create quiz modal
+window.showCreateQuizModal = function() {
+    document.getElementById('create-quiz-modal').classList.remove('hidden');
+    questionCounter = 0;
+    document.getElementById('questions-container').innerHTML = '';
+    addQuestionField(); // Add first question
+};
+
+// Close create quiz modal
+window.closeCreateQuizModal = function() {
+    document.getElementById('create-quiz-modal').classList.add('hidden');
+    document.getElementById('quiz-name').value = '';
+    document.getElementById('quiz-module').value = '';
+    document.getElementById('quiz-start').value = '';
+    document.getElementById('quiz-end').value = '';
+    document.getElementById('quiz-duration').value = '';
+    document.getElementById('questions-container').innerHTML = '';
+};
+
+// Add question field
+window.addQuestionField = function() {
+    questionCounter++;
+    const container = document.getElementById('questions-container');
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'border border-slate-200 rounded-xl p-4 bg-slate-50';
+    questionDiv.id = `question-${questionCounter}`;
+    
+    questionDiv.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+            <h4 class="font-bold text-slate-900">Question ${questionCounter}</h4>
+            <button type="button" onclick="removeQuestion(${questionCounter})" class="text-red-500 hover:text-red-700 text-sm font-bold">
+                Remove
+            </button>
+        </div>
+        <div class="space-y-3">
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Question Text *</label>
+                <textarea rows="2" class="question-text w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required placeholder="Enter your question here..."></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Option A *</label>
+                    <input type="text" class="option-a w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Option B *</label>
+                    <input type="text" class="option-b w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Option C *</label>
+                    <input type="text" class="option-c w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-700 mb-1">Option D *</label>
+                    <input type="text" class="option-d w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">Correct Answer *</label>
+                <select class="correct-answer w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm" required>
+                    <option value="">-- Select --</option>
+                    <option value="A">Option A</option>
+                    <option value="B">Option B</option>
+                    <option value="C">Option C</option>
+                    <option value="D">Option D</option>
+                </select>
+            </div>
+        </div>
+    `;
+    
+    container.appendChild(questionDiv);
+};
+
+// Remove question
+window.removeQuestion = function(id) {
+    const questionDiv = document.getElementById(`question-${id}`);
+    if (questionDiv) {
+        questionDiv.remove();
+    }
+};
+
+// Create quiz
+window.createQuiz = async function(event) {
+    event.preventDefault();
+    
+    if (!db) {
+        alert('❌ Firebase not configured');
+        return;
+    }
+    
+    const name = document.getElementById('quiz-name').value;
+    const module = document.getElementById('quiz-module').value;
+    const startTime = document.getElementById('quiz-start').value;
+    const endTime = document.getElementById('quiz-end').value;
+    const duration = parseInt(document.getElementById('quiz-duration').value);
+    
+    // Collect questions
+    const questions = [];
+    const questionDivs = document.querySelectorAll('#questions-container > div');
+    
+    if (questionDivs.length === 0) {
+        alert('⚠️ Please add at least one question');
+        return;
+    }
+    
+    questionDivs.forEach((div, index) => {
+        const questionText = div.querySelector('.question-text').value;
+        const optionA = div.querySelector('.option-a').value;
+        const optionB = div.querySelector('.option-b').value;
+        const optionC = div.querySelector('.option-c').value;
+        const optionD = div.querySelector('.option-d').value;
+        const correctAnswer = div.querySelector('.correct-answer').value;
+        
+        if (questionText && optionA && optionB && optionC && optionD && correctAnswer) {
+            questions.push({
+                id: index + 1,
+                question: questionText,
+                options: {
+                    A: optionA,
+                    B: optionB,
+                    C: optionC,
+                    D: optionD
+                },
+                correctAnswer: correctAnswer
+            });
+        }
+    });
+    
+    if (questions.length === 0) {
+        alert('⚠️ Please complete all question fields');
+        return;
+    }
+    
+    const testData = {
+        name: name,
+        module: module,
+        startTime: startTime,
+        endTime: endTime,
+        duration: duration,
+        questions: questions,
+        createdBy: userName,
+        createdAt: new Date().toISOString(),
+        participants: []
+    };
+    
+    try {
+        await db.collection('crt-tests').add(testData);
+        alert('✅ Test created successfully!');
+        closeCreateQuizModal();
+        loadCRTTests();
+    } catch (error) {
+        console.error('Error creating test:', error);
+        alert('❌ Failed to create test');
+    }
+};
+
+// View test details
+window.viewTestDetails = function(testId) {
+    const test = crtTests.find(t => t.id === testId);
+    if (!test) return;
+    
+    let questionsHTML = test.questions.map((q, index) => `
+        <div class="border-b border-slate-200 pb-4 mb-4">
+            <p class="font-bold text-slate-900 mb-2">${index + 1}. ${q.question}</p>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <p class="${q.correctAnswer === 'A' ? 'text-green-600 font-bold' : 'text-slate-600'}">A) ${q.options.A}</p>
+                <p class="${q.correctAnswer === 'B' ? 'text-green-600 font-bold' : 'text-slate-600'}">B) ${q.options.B}</p>
+                <p class="${q.correctAnswer === 'C' ? 'text-green-600 font-bold' : 'text-slate-600'}">C) ${q.options.C}</p>
+                <p class="${q.correctAnswer === 'D' ? 'text-green-600 font-bold' : 'text-slate-600'}">D) ${q.options.D}</p>
+            </div>
+        </div>
+    `).join('');
+    
+    alert(`📋 Test Details:\n\nName: ${test.name}\nModule: ${test.module}\nQuestions: ${test.questions.length}\nDuration: ${test.duration} minutes\n\nView questions in console.`);
+    console.log('Test Questions:', test.questions);
+};
+
+// Delete test
+window.deleteTest = async function(testId) {
+    if (!confirm('⚠️ Are you sure you want to delete this test?')) return;
+    
+    if (!db) {
+        alert('❌ Firebase not configured');
+        return;
+    }
+    
+    try {
+        await db.collection('crt-tests').doc(testId).delete();
+        alert('✅ Test deleted successfully!');
+        loadCRTTests();
+    } catch (error) {
+        console.error('Error deleting test:', error);
+        alert('❌ Failed to delete test');
+    }
+};
+

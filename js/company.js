@@ -89,8 +89,12 @@ window.selectLocation = function(index, place) {
     const suggestionsDiv = document.getElementById('location-suggestions');
     const latInput = document.getElementById('job-lat');
     const lngInput = document.getElementById('job-lng');
-    const coordsDisplay = document.getElementById('job-coords-display');
     const statusMsg = document.getElementById('location-status');
+    
+    if (!locationInput || !latInput || !lngInput) {
+        console.error('Location form elements not found');
+        return;
+    }
     
     // Set location name
     locationInput.value = place.display_name;
@@ -99,12 +103,11 @@ window.selectLocation = function(index, place) {
     latInput.value = parseFloat(place.lat);
     lngInput.value = parseFloat(place.lon);
     
-    // Update display
-    coordsDisplay.value = `${parseFloat(place.lat).toFixed(4)}, ${parseFloat(place.lon).toFixed(4)}`;
-    
     // Show success message
-    statusMsg.classList.remove('hidden');
-    setTimeout(() => statusMsg.classList.add('hidden'), 3000);
+    if (statusMsg) {
+        statusMsg.classList.remove('hidden');
+        setTimeout(() => statusMsg.classList.add('hidden'), 3000);
+    }
     
     // Hide suggestions
     suggestionsDiv.classList.add('hidden');
@@ -368,10 +371,14 @@ window.closePostJobModal = function() {
     // Clear form
     const form = document.querySelector('#post-job-modal form');
     if (form) form.reset();
-    document.getElementById('job-lat').value = '';
-    document.getElementById('job-lng').value = '';
-    document.getElementById('job-coords-display').value = '';
-    document.getElementById('location-status').classList.add('hidden');
+    
+    const latInput = document.getElementById('job-lat');
+    const lngInput = document.getElementById('job-lng');
+    const statusMsg = document.getElementById('location-status');
+    
+    if (latInput) latInput.value = '';
+    if (lngInput) lngInput.value = '';
+    if (statusMsg) statusMsg.classList.add('hidden');
 }
 
 window.postJob = async function(event) {

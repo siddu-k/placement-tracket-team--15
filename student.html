@@ -59,6 +59,10 @@
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                         <span class="font-bold text-sm">My Applications</span>
                     </button>
+                    <button onclick="switchView('online-tests')" id="btn-online-tests" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/></svg>
+                        <span class="font-bold text-sm">Online Tests</span>
+                    </button>
                     <button onclick="switchView('profile')" id="btn-profile" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
                         <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                         <span class="font-bold text-sm">Profile</span>
@@ -330,6 +334,31 @@
                 </div>
             </div>
 
+            <!-- Online Tests View -->
+            <div id="view-online-tests" class="content-view hidden p-6 md:p-10">
+                <div class="space-y-6">
+                    <div class="bg-white p-8 rounded-[3rem] shadow-sm">
+                        <div class="flex justify-between items-center mb-6">
+                            <div>
+                                <h2 class="text-3xl font-black text-slate-900 italic">Online Tests</h2>
+                                <p class="text-sm text-slate-500 mt-1">Practice and take CRT assessment tests</p>
+                            </div>
+                        </div>
+
+                        <!-- Filter Tabs -->
+                        <div class="flex space-x-3 mb-6">
+                            <button onclick="filterStudentTests('all')" data-filter="all" class="student-test-filter-btn active bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all">All Tests</button>
+                            <button onclick="filterStudentTests('live')" data-filter="live" class="student-test-filter-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-xl text-xs font-bold transition-all">Live Now</button>
+                            <button onclick="filterStudentTests('upcoming')" data-filter="upcoming" class="student-test-filter-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-xl text-xs font-bold transition-all">Upcoming</button>
+                            <button onclick="filterStudentTests('completed')" data-filter="completed" class="student-test-filter-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-xl text-xs font-bold transition-all">Completed</button>
+                        </div>
+
+                        <!-- Tests List -->
+                        <div id="student-tests-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- AI Helper View -->
             <div id="view-ai-helper" class="content-view hidden p-6 md:p-10">
                 <div class="bg-white p-8 rounded-[3rem] shadow-lg h-[calc(100vh-200px)] flex flex-col">
@@ -432,6 +461,64 @@
                 <div class="flex space-x-4">
                     <button onclick="submitApplication()" class="flex-1 bg-blue-900 text-white py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all">Submit Application</button>
                     <button onclick="closeApplyModal()" class="px-6 bg-slate-100 text-slate-600 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Take Test Modal -->
+    <div id="take-test-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Test Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-white">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <h2 id="test-modal-name" class="text-2xl font-black mb-1">Test Name</h2>
+                        <p id="test-modal-module" class="text-sm text-blue-100">Module</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="bg-white/20 rounded-xl px-4 py-2">
+                            <p class="text-xs text-blue-100">Time Remaining</p>
+                            <p id="test-timer" class="text-2xl font-black">30:00</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-6 mt-4 text-sm">
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="test-modal-questions">0 Questions</span>
+                    </div>
+                    <div class="flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                        </svg>
+                        <span id="test-modal-duration">0 minutes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Questions Container -->
+            <div class="flex-1 overflow-y-auto p-6" id="test-questions-container">
+                <!-- Questions will be loaded here -->
+            </div>
+
+            <!-- Footer Actions -->
+            <div class="border-t border-slate-200 p-6 bg-slate-50">
+                <div class="flex justify-between items-center">
+                    <p class="text-sm text-slate-600">
+                        Answered: <span id="answered-count" class="font-bold text-blue-600">0</span> / <span id="total-questions">0</span>
+                    </p>
+                    <div class="flex space-x-3">
+                        <button onclick="closeTestModal()" class="px-6 py-3 bg-slate-200 text-slate-700 rounded-xl font-bold hover:bg-slate-300 transition-all">
+                            Exit Test
+                        </button>
+                        <button onclick="submitTest()" class="px-8 py-3 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-all">
+                            Submit Test
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

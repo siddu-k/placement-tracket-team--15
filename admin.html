@@ -51,6 +51,10 @@
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
                     <span class="font-bold text-sm">Applications</span>
                 </button>
+                <button onclick="switchView('crt-training')" id="btn-crt-training" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"/></svg>
+                    <span class="font-bold text-sm">CRT Training</span>
+                </button>
             </div>
 
             <div class="p-6 mt-auto">
@@ -197,7 +201,121 @@
                     <div id="applications-list" class="space-y-4"></div>
                 </div>
             </div>
+
+            <!-- CRT Training View -->
+            <div id="view-crt-training" class="content-view hidden p-10 space-y-8">
+                <div class="bg-white p-8 rounded-[3rem] shadow-sm">
+                    <div class="flex justify-between items-center mb-8">
+                        <div>
+                            <h2 class="text-2xl font-black text-slate-900 italic">CRT Training & Assessment</h2>
+                            <p class="text-sm text-slate-500 mt-1">Create and manage online tests for students</p>
+                        </div>
+                        <button onclick="showCreateQuizModal()" class="bg-blue-900 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:shadow-xl transition-all">
+                            Create New Test
+                        </button>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-br from-blue-500 to-blue-600 p-6 rounded-2xl text-white">
+                            <p class="text-xs font-bold opacity-80 uppercase mb-2">Total Tests</p>
+                            <h3 id="stat-total-tests" class="text-3xl font-black">0</h3>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-500 to-green-600 p-6 rounded-2xl text-white">
+                            <p class="text-xs font-bold opacity-80 uppercase mb-2">Active Tests</p>
+                            <h3 id="stat-active-tests" class="text-3xl font-black">0</h3>
+                        </div>
+                        <div class="bg-gradient-to-br from-purple-500 to-purple-600 p-6 rounded-2xl text-white">
+                            <p class="text-xs font-bold opacity-80 uppercase mb-2">Total Questions</p>
+                            <h3 id="stat-total-questions" class="text-3xl font-black">0</h3>
+                        </div>
+                        <div class="bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-2xl text-white">
+                            <p class="text-xs font-bold opacity-80 uppercase mb-2">Avg Participation</p>
+                            <h3 id="stat-avg-participation" class="text-3xl font-black">0%</h3>
+                        </div>
+                    </div>
+
+                    <!-- Filter Tabs -->
+                    <div class="flex space-x-3 mb-6">
+                        <button onclick="filterTests('all')" data-filter="all" class="test-filter-btn active bg-blue-600 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all">All Tests</button>
+                        <button onclick="filterTests('live')" data-filter="live" class="test-filter-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-xl text-xs font-bold transition-all">Live Now</button>
+                        <button onclick="filterTests('upcoming')" data-filter="upcoming" class="test-filter-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-xl text-xs font-bold transition-all">Upcoming</button>
+                        <button onclick="filterTests('completed')" data-filter="completed" class="test-filter-btn bg-gray-200 text-gray-700 px-6 py-2 rounded-xl text-xs font-bold transition-all">Completed</button>
+                    </div>
+
+                    <!-- Tests List -->
+                    <div id="crt-tests-list" class="space-y-4"></div>
+                </div>
+            </div>
         </main>
+    </div>
+
+    <!-- Create Quiz Modal -->
+    <div id="create-quiz-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="sticky top-0 bg-white border-b border-slate-200 p-6">
+                <h2 class="text-2xl font-black text-slate-900 italic">Create New Test</h2>
+                <p class="text-sm text-slate-500 mt-1">Set up aptitude or technical assessment</p>
+            </div>
+            
+            <form onsubmit="createQuiz(event)" class="p-6 space-y-6">
+                <!-- Basic Info -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Test Name *</label>
+                        <input type="text" id="quiz-name" required placeholder="e.g., 2nd B.Tech Aptitude Test" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Module *</label>
+                        <select id="quiz-module" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="">-- Select Module --</option>
+                            <option value="Aptitude">Aptitude</option>
+                            <option value="Reasoning">Reasoning</option>
+                            <option value="Verbal">Verbal Ability</option>
+                            <option value="Technical">Technical</option>
+                            <option value="Coding">Coding</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Duration & Schedule -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Start Date & Time *</label>
+                        <input type="datetime-local" id="quiz-start" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">End Date & Time *</label>
+                        <input type="datetime-local" id="quiz-end" required class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Duration (minutes) *</label>
+                        <input type="number" id="quiz-duration" required min="5" placeholder="30" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- Questions Section -->
+                <div class="border-t border-slate-200 pt-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-lg text-slate-900">Questions</h3>
+                        <button type="button" onclick="addQuestionField()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-blue-700 transition-all">
+                            + Add Question
+                        </button>
+                    </div>
+                    <div id="questions-container" class="space-y-4"></div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex space-x-3 pt-6 border-t border-slate-200">
+                    <button type="submit" class="flex-1 bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">
+                        Create Test
+                    </button>
+                    <button type="button" onclick="closeCreateQuizModal()" class="px-8 bg-slate-100 text-slate-600 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <!-- Add Drive Modal -->

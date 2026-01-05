@@ -101,6 +101,64 @@
                     <div id="applicants-list" class="space-y-4"></div>
                 </div>
             </div>
+
+            <!-- AI ATS Assistant View -->
+            <div id="view-ai-ats" class="content-view hidden p-10">
+                <div class="bg-white p-8 rounded-[3rem] shadow-lg flex flex-col max-h-[calc(100vh-180px)]">
+                    <div class="mb-6 flex-shrink-0">
+                        <h2 class="text-3xl font-black text-slate-900 italic mb-2">AI ATS Resume Assistant</h2>
+                        <p class="text-sm text-slate-500">Get AI-powered candidate recommendations and insights from applications</p>
+                    </div>
+                    
+                    <!-- Chat Messages -->
+                    <div id="ats-chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-6 custom-scrollbar bg-slate-50 p-4 rounded-2xl" style="min-height: 300px; max-height: 400px;">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                </svg>
+                            </div>
+                            <div class="bg-emerald-50 rounded-2xl p-4 max-w-[80%]">
+                                <p class="text-sm text-slate-700">Hello! I'm your AI ATS Resume Assistant. I can help you with:</p>
+                                <ul class="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
+                                    <li>Recommend top candidates for your positions</li>
+                                    <li>Analyze applicant qualifications and skills</li>
+                                    <li>Compare candidates based on CGPA, branch, experience</li>
+                                    <li>Suggest best-fit applicants for specific roles</li>
+                                    <li>Provide insights on application pool</li>
+                                </ul>
+                                <p class="mt-2 text-sm text-slate-700">What would you like to know about your applicants?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Suggested Questions -->
+                    <div id="ats-suggestions" class="mb-4 flex flex-wrap gap-2 flex-shrink-0">
+                        <button onclick="askATS('Who are the top 5 candidates?')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                            Top 5 candidates
+                        </button>
+                        <button onclick="askATS('Show me CSE branch applicants')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                            CSE applicants
+                        </button>
+                        <button onclick="askATS('Candidates with CGPA above 8.5')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                            High CGPA candidates
+                        </button>
+                        <button onclick="askATS('Summarize all applications')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                            Application summary
+                        </button>
+                    </div>
+                    
+                    <!-- Input Area -->
+                    <div class="flex space-x-3 flex-shrink-0">
+                        <input type="text" id="ats-input" placeholder="Ask about candidates, qualifications, or get recommendations..." class="flex-1 px-6 py-4 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-medium" onkeypress="if(event.key==='Enter') sendATSMessage()">
+                        <button onclick="sendATSMessage()" id="ats-send-btn" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -206,64 +264,6 @@
             <div class="flex space-x-3">
                 <button onclick="confirmReject()" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold text-sm uppercase tracking-wider hover:bg-red-500 transition-all">Send & Reject</button>
                 <button onclick="closeRejectModal()" class="px-6 bg-slate-100 text-slate-600 py-3 rounded-lg font-bold text-sm uppercase tracking-wider hover:bg-slate-200 transition-all">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- AI ATS Assistant View -->
-    <div id="view-ai-ats" class="content-view hidden p-10">
-        <div class="bg-white p-8 rounded-[3rem] shadow-lg flex flex-col max-h-[calc(100vh-180px)]">
-            <div class="mb-6 flex-shrink-0">
-                <h2 class="text-3xl font-black text-slate-900 italic mb-2">AI ATS Resume Assistant</h2>
-                <p class="text-sm text-slate-500">Get AI-powered candidate recommendations and insights from applications</p>
-            </div>
-            
-            <!-- Chat Messages -->
-            <div id="ats-chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-6 custom-scrollbar bg-slate-50 p-4 rounded-2xl" style="min-height: 300px; max-height: 400px;">
-                <div class="flex items-start space-x-3">
-                    <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                        </svg>
-                    </div>
-                    <div class="bg-emerald-50 rounded-2xl p-4 max-w-[80%]">
-                        <p class="text-sm text-slate-700">Hello! I'm your AI ATS Resume Assistant. I can help you with:</p>
-                        <ul class="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
-                            <li>Recommend top candidates for your positions</li>
-                            <li>Analyze applicant qualifications and skills</li>
-                            <li>Compare candidates based on CGPA, branch, experience</li>
-                            <li>Suggest best-fit applicants for specific roles</li>
-                            <li>Provide insights on application pool</li>
-                        </ul>
-                        <p class="mt-2 text-sm text-slate-700">What would you like to know about your applicants?</p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Suggested Questions -->
-            <div id="ats-suggestions" class="mb-4 flex flex-wrap gap-2 flex-shrink-0">
-                <button onclick="askATS('Who are the top 5 candidates?')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
-                    Top 5 candidates
-                </button>
-                <button onclick="askATS('Show me CSE branch applicants')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
-                    CSE applicants
-                </button>
-                <button onclick="askATS('Candidates with CGPA above 8.5')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
-                    High CGPA candidates
-                </button>
-                <button onclick="askATS('Summarize all applications')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
-                    Application summary
-                </button>
-            </div>
-            
-            <!-- Input Area -->
-            <div class="flex space-x-3 flex-shrink-0">
-                <input type="text" id="ats-input" placeholder="Ask about candidates, qualifications, or get recommendations..." class="flex-1 px-6 py-4 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-medium" onkeypress="if(event.key==='Enter') sendATSMessage()">
-                <button onclick="sendATSMessage()" id="ats-send-btn" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
-                    </svg>
-                </button>
             </div>
         </div>
     </div>

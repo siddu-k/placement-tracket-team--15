@@ -11,6 +11,10 @@ let selectedFilters = { branch: 'all', location: 'all', package: 'all' };
 let isDragging = false;
 let prevMouse = { x: 0, y: 0 };
 let COMPANIES = []; // Will be loaded from Firebase
+let studentTests = []; // CRT Tests
+let currentTest = null; // Currently taking test
+let testAnswers = {}; // User's answers
+let testTimer = null; // Timer interval
 
 // Check if user is logged in
 if (!sessionStorage.getItem('userRole') || sessionStorage.getItem('userRole') !== 'student') {
@@ -34,6 +38,7 @@ document.getElementById('cgpa-slider').value = curCGPA;
 loadCompaniesFromFirebase();
 loadUserApplications();
 generateNotifications();
+loadStudentTests();
 
 // ========== LOAD COMPANIES FROM FIREBASE ==========
 async function loadCompaniesFromFirebase() {
@@ -202,6 +207,7 @@ window.switchView = function(v) {
         map: ['Job Locations', 'View job opportunities on 3D globe.'],
         jobs: ['Job Board', 'Active campus drives.'],
         applications: ['My Applications', 'Track your application status.'],
+        'online-tests': ['Online Tests', 'Take CRT and aptitude tests.'],
         profile: ['My Profile', 'Update your information.'],
         'ai-helper': ['AI Job Assistant', 'Get personalized job recommendations.']
     };
@@ -213,6 +219,11 @@ window.switchView = function(v) {
     // Load applications when viewing that section
     if(v === 'applications') {
         updateApplicationsList();
+    }
+    
+    // Load online tests when viewing
+    if(v === 'online-tests') {
+        updateStudentTestsList();
     }
     
     // Load profile data when viewing profile
@@ -771,6 +782,17 @@ function updateApplicationsList() {
                     <p class="text-sm text-gray-700 mt-1">${app.reason}</p>
                 </div>
                 ` : ''}
+                ${app.status === 'rejected' && app.rejectionMessage ? `
+                <div class="mt-3 pt-3 border-t border-red-200 bg-red-50 -mx-4 -mb-4 p-4 rounded-b-lg">
+                    <p class="text-xs font-bold text-red-700 flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        Rejection Feedback:
+                    </p>
+                    <p class="text-sm text-red-800 mt-2">${app.rejectionMessage}</p>
+                </div>
+                ` : ''}
             </div>
         `;
         listContainer.appendChild(appCard);
@@ -1146,6 +1168,306 @@ function formatMarkdown(text) {
     
     return formatted;
 }
+
+// ========== ONLINE TESTS FUNCTIONS ==========
+
+// Load all CRT tests
+async function loadStudentTests() {
+    if (!db) return;
+    
+    try {
+        const snapshot = await db.collection('crt-tests').orderBy('createdAt', 'desc').get();
+        studentTests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('📚 Loaded tests:', studentTests.length);
+    } catch (error) {
+        console.error('Error loading tests:', error);
+    }
+}
+
+// Update student tests list
+function updateStudentTestsList() {
+    const container = document.getElementById('student-tests-list');
+    if (!container) return;
+    
+    const activeFilter = document.querySelector('.student-test-filter-btn.active')?.dataset.filter || 'all';
+    const now = new Date();
+    
+    let filteredTests = studentTests;
+    if (activeFilter === 'live') {
+        filteredTests = studentTests.filter(t => {
+            const start = new Date(t.startTime);
+            const end = new Date(t.endTime);
+            return start <= now && now <= end;
+        });
+    } else if (activeFilter === 'upcoming') {
+        filteredTests = studentTests.filter(t => new Date(t.startTime) > now);
+    } else if (activeFilter === 'completed') {
+        filteredTests = studentTests.filter(t => new Date(t.endTime) < now);
+    }
+    
+    if (filteredTests.length === 0) {
+        container.innerHTML = `
+            <div class="col-span-full text-center py-16">
+                <svg class="mx-auto h-16 w-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                </svg>
+                <p class="mt-4 text-lg font-bold text-gray-500">No tests available</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = filteredTests.map(test => {
+        const start = new Date(test.startTime);
+        const end = new Date(test.endTime);
+        const isLive = start <= now && now <= end;
+        const isUpcoming = start > now;
+        const isCompleted = end < now;
+        
+        let statusBadge = '';
+        let buttonHTML = '';
+        let cardClass = 'bg-white';
+        
+        if (isLive) {
+            statusBadge = '<div class="absolute top-4 right-4"><span class="bg-green-500 text-white px-3 py-1.5 rounded-full text-xs font-bold animate-pulse flex items-center"><span class="w-2 h-2 bg-white rounded-full mr-2"></span>Live</span></div>';
+            buttonHTML = `<button onclick="startTest('${test.id}')" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-lg">Start Exam</button>`;
+            cardClass = 'bg-gradient-to-br from-green-50 to-white border-2 border-green-200';
+        } else if (isUpcoming) {
+            statusBadge = '<div class="absolute top-4 right-4"><span class="bg-blue-500 text-white px-3 py-1.5 rounded-full text-xs font-bold">Upcoming</span></div>';
+            buttonHTML = `<button class="w-full bg-gray-300 text-gray-600 px-4 py-3 rounded-xl font-bold cursor-not-allowed" disabled>Not Started</button>`;
+            cardClass = 'bg-white border border-blue-100';
+        } else {
+            statusBadge = '<div class="absolute top-4 right-4"><span class="bg-gray-400 text-white px-3 py-1.5 rounded-full text-xs font-bold">Ended</span></div>';
+            buttonHTML = `<button class="w-full bg-gray-200 text-gray-500 px-4 py-3 rounded-xl font-bold cursor-not-allowed" disabled>Completed</button>`;
+            cardClass = 'bg-gray-50 border border-gray-200 opacity-75';
+        }
+        
+        return `
+            <div class="relative ${cardClass} rounded-2xl p-6 shadow-sm hover:shadow-lg transition-all">
+                ${statusBadge}
+                <div class="mb-4">
+                    <h3 class="text-xl font-black text-slate-900 mb-2 pr-20">${test.name}</h3>
+                    <p class="text-sm font-bold text-blue-600">${test.module}</p>
+                </div>
+                
+                <div class="space-y-3 mb-6">
+                    <div class="flex items-center text-sm text-slate-600">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-bold">${test.questions?.length || 0} Questions</span>
+                    </div>
+                    <div class="flex items-center text-sm text-slate-600">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="font-bold">${test.duration} minutes</span>
+                    </div>
+                    <div class="flex items-center text-sm text-slate-600">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                        </svg>
+                        <span>${start.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 italic">
+                        Ends: ${end.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                </div>
+                
+                ${buttonHTML}
+            </div>
+        `;
+    }).join('');
+}
+
+// Filter student tests
+window.filterStudentTests = function(filter) {
+    document.querySelectorAll('.student-test-filter-btn').forEach(btn => {
+        btn.classList.remove('active', 'bg-blue-600', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+    });
+    
+    const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
+    if (activeBtn) {
+        activeBtn.classList.remove('bg-gray-200', 'text-gray-700');
+        activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+    }
+    
+    updateStudentTestsList();
+};
+
+// Start a test
+window.startTest = function(testId) {
+    const test = studentTests.find(t => t.id === testId);
+    if (!test) return;
+    
+    const now = new Date();
+    const start = new Date(test.startTime);
+    const end = new Date(test.endTime);
+    
+    if (start > now) {
+        alert('⚠️ This test has not started yet!');
+        return;
+    }
+    
+    if (end < now) {
+        alert('⚠️ This test has ended!');
+        return;
+    }
+    
+    // Show confirmation modal
+    const confirmStart = confirm(`📋 ${test.name}\\n\\nModule: ${test.module}\\nQuestions: ${test.questions.length}\\nDuration: ${test.duration} minutes\\n\\nOnce you start, the timer cannot be paused.\\n\\nReady to begin?`);
+    
+    if (!confirmStart) return;
+    
+    // Initialize test
+    currentTest = test;
+    testAnswers = {};
+    
+    // Show modal
+    document.getElementById('take-test-modal').classList.remove('hidden');
+    
+    // Populate test info
+    document.getElementById('test-modal-name').textContent = test.name;
+    document.getElementById('test-modal-module').textContent = test.module;
+    document.getElementById('test-modal-questions').textContent = `${test.questions.length} Questions`;
+    document.getElementById('test-modal-duration').textContent = `${test.duration} minutes`;
+    document.getElementById('total-questions').textContent = test.questions.length;
+    document.getElementById('answered-count').textContent = '0';
+    
+    // Render questions
+    renderTestQuestions(test.questions);
+    
+    // Start timer
+    startTestTimer(test.duration);
+};
+
+// Render test questions
+function renderTestQuestions(questions) {
+    const container = document.getElementById('test-questions-container');
+    container.innerHTML = questions.map((q, index) => `
+        <div class="mb-8 pb-8 border-b border-slate-200 last:border-0">
+            <div class="flex items-start mb-4">
+                <span class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mr-3 flex-shrink-0">${index + 1}</span>
+                <p class="text-lg font-bold text-slate-900">${q.question}</p>
+            </div>
+            
+            <div class="ml-11 space-y-3">
+                ${['A', 'B', 'C', 'D'].map(option => `
+                    <label class="flex items-center p-4 bg-slate-50 hover:bg-blue-50 rounded-xl cursor-pointer transition-all border-2 border-transparent hover:border-blue-200">
+                        <input type="radio" name="question-${index}" value="${option}" onchange="updateAnswer(${index}, '${option}')" class="w-5 h-5 text-blue-600 mr-3">
+                        <span class="font-bold text-slate-700 mr-2">${option})</span>
+                        <span class="text-slate-700">${q.options[option]}</span>
+                    </label>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+}
+
+// Update answer
+window.updateAnswer = function(questionIndex, answer) {
+    testAnswers[questionIndex] = answer;
+    
+    // Update answered count
+    const answeredCount = Object.keys(testAnswers).length;
+    document.getElementById('answered-count').textContent = answeredCount;
+};
+
+// Start test timer
+function startTestTimer(duration) {
+    let timeRemaining = duration * 60; // Convert to seconds
+    
+    function updateTimer() {
+        const minutes = Math.floor(timeRemaining / 60);
+        const seconds = timeRemaining % 60;
+        document.getElementById('test-timer').textContent = 
+            `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        
+        if (timeRemaining <= 0) {
+            clearInterval(testTimer);
+            alert('⏰ Time is up! Submitting your test...');
+            submitTest();
+        }
+        
+        timeRemaining--;
+    }
+    
+    updateTimer(); // Initial call
+    testTimer = setInterval(updateTimer, 1000);
+}
+
+// Submit test
+window.submitTest = async function() {
+    if (!currentTest) return;
+    
+    const totalQuestions = currentTest.questions.length;
+    const answeredCount = Object.keys(testAnswers).length;
+    
+    if (answeredCount < totalQuestions) {
+        const confirmSubmit = confirm(`⚠️ You have answered ${answeredCount} out of ${totalQuestions} questions.\\n\\nAre you sure you want to submit?`);
+        if (!confirmSubmit) return;
+    }
+    
+    // Calculate score
+    let correctAnswers = 0;
+    currentTest.questions.forEach((q, index) => {
+        if (testAnswers[index] === q.correctAnswer) {
+            correctAnswers++;
+        }
+    });
+    
+    const score = ((correctAnswers / totalQuestions) * 100).toFixed(2);
+    
+    // Save result to Firebase
+    if (db) {
+        try {
+            await db.collection('test-results').add({
+                userId: curUserId,
+                userName: userName,
+                testId: currentTest.id,
+                testName: currentTest.name,
+                module: currentTest.module,
+                totalQuestions: totalQuestions,
+                correctAnswers: correctAnswers,
+                score: parseFloat(score),
+                answers: testAnswers,
+                submittedAt: new Date().toISOString()
+            });
+            console.log('✅ Test result saved');
+        } catch (error) {
+            console.error('Error saving result:', error);
+        }
+    }
+    
+    // Clear timer
+    if (testTimer) {
+        clearInterval(testTimer);
+        testTimer = null;
+    }
+    
+    // Close modal
+    closeTestModal();
+    
+    // Show result
+    alert(`🎉 Test Submitted!\\n\\n📊 Your Score: ${score}%\\n✅ Correct Answers: ${correctAnswers}/${totalQuestions}\\n\\nYour result has been saved. Good luck!`);
+};
+
+// Close test modal
+window.closeTestModal = function() {
+    if (testTimer && currentTest) {
+        const confirmExit = confirm('⚠️ Are you sure you want to exit?\\n\\nYour progress will be lost!');
+        if (!confirmExit) return;
+        
+        clearInterval(testTimer);
+        testTimer = null;
+    }
+    
+    document.getElementById('take-test-modal').classList.add('hidden');
+    currentTest = null;
+    testAnswers = {};
+};
 
 window.addEventListener('resize', () => {
     if (renderer && !document.getElementById('view-map').classList.contains('hidden')) {

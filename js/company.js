@@ -4,6 +4,8 @@ let curUserId = null;
 let companyName = '';
 let myJobs = [];
 let myApplications = [];
+let selectedLocation = null;
+let searchTimeout = null;
 
 // Check if user is logged in as company
 if (!sessionStorage.getItem('userRole') || sessionStorage.getItem('userRole') !== 'company') {
@@ -18,6 +20,124 @@ document.getElementById('prof-name').innerText = companyName;
 // Load data
 loadMyJobs();
 loadMyApplications();
+
+// ========== LOCATION AUTOCOMPLETE & GEOCODING ==========
+function setupLocationAutocomplete() {
+    const locationInput = document.getElementById('job-location');
+    const suggestionsDiv = document.getElementById('location-suggestions');
+    
+    if (!locationInput) return;
+    
+    locationInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        
+        // Clear previous timeout
+        if (searchTimeout) clearTimeout(searchTimeout);
+        
+        // Hide suggestions if query is too short
+        if (query.length < 3) {
+            suggestionsDiv.classList.add('hidden');
+            return;
+        }
+        
+        // Debounce search
+        searchTimeout = setTimeout(() => {
+            searchLocation(query);
+        }, 500);
+    });
+    
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!locationInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+            suggestionsDiv.classList.add('hidden');
+        }
+    });
+}
+
+async function searchLocation(query) {
+    const suggestionsDiv = document.getElementById('location-suggestions');
+    
+    try {
+        // Using Nominatim (OpenStreetMap) free geocoding API
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`);
+        const results = await response.json();
+        
+        if (results.length === 0) {
+            suggestionsDiv.innerHTML = '<div class="p-4 text-sm text-slate-500">No locations found. Try a different city name.</div>';
+            suggestionsDiv.classList.remove('hidden');
+            return;
+        }
+        
+        suggestionsDiv.innerHTML = results.map((place, index) => `
+            <div class="p-3 hover:bg-emerald-50 cursor-pointer transition-all border-b border-slate-100 last:border-0" onclick="selectLocation(${index}, ${JSON.stringify(place).replace(/"/g, '&quot;')})">
+                <p class="font-bold text-sm text-slate-800">${place.display_name}</p>
+                <p class="text-xs text-slate-500 mt-1">Lat: ${parseFloat(place.lat).toFixed(4)}, Lng: ${parseFloat(place.lon).toFixed(4)}</p>
+            </div>
+        `).join('');
+        
+        suggestionsDiv.classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        suggestionsDiv.innerHTML = '<div class="p-4 text-sm text-red-500">Error loading locations. Please try again.</div>';
+        suggestionsDiv.classList.remove('hidden');
+    }
+}
+
+window.selectLocation = function(index, place) {
+    const locationInput = document.getElementById('job-location');
+    const suggestionsDiv = document.getElementById('location-suggestions');
+    const latInput = document.getElementById('job-lat');
+    const lngInput = document.getElementById('job-lng');
+    const coordsDisplay = document.getElementById('job-coords-display');
+    const statusMsg = document.getElementById('location-status');
+    
+    // Set location name
+    locationInput.value = place.display_name;
+    
+    // Set coordinates
+    latInput.value = parseFloat(place.lat);
+    lngInput.value = parseFloat(place.lon);
+    
+    // Update display
+    coordsDisplay.value = `${parseFloat(place.lat).toFixed(4)}, ${parseFloat(place.lon).toFixed(4)}`;
+    
+    // Show success message
+    statusMsg.classList.remove('hidden');
+    setTimeout(() => statusMsg.classList.add('hidden'), 3000);
+    
+    // Hide suggestions
+    suggestionsDiv.classList.add('hidden');
+    
+    // Auto-select region based on location
+    autoSelectRegion(place.address);
+}
+
+function autoSelectRegion(address) {
+    const regionSelect = document.getElementById('job-region');
+    if (!address || !regionSelect) return;
+    
+    const country = address.country || '';
+    
+    if (country.toLowerCase().includes('india')) {
+        regionSelect.value = 'india';
+    } else if (country.toLowerCase().includes('united states') || country.toLowerCase().includes('usa')) {
+        regionSelect.value = 'usa';
+    } else if (country.toLowerCase().includes('china') || country.toLowerCase().includes('japan') || 
+               country.toLowerCase().includes('singapore') || country.toLowerCase().includes('australia')) {
+        regionSelect.value = 'apac';
+    } else if (country.toLowerCase().includes('saudi') || country.toLowerCase().includes('dubai') || 
+               country.toLowerCase().includes('uae')) {
+        regionSelect.value = 'middle-east';
+    } else if (country.toLowerCase().includes('germany') || country.toLowerCase().includes('france') || 
+               country.toLowerCase().includes('uk') || country.toLowerCase().includes('united kingdom')) {
+        regionSelect.value = 'europe';
+    }
+}
+
+window.showCoordinatesInfo = function() {
+    alert('📍 How Location Works:\n\n1. Start typing your city name\n2. Select from the suggestions\n3. Coordinates are automatically detected\n4. This location will appear as a red marker on the 3D globe!\n\nStudents will see your job location on the interactive map.');
+}
 
 // ========== LOAD MY JOBS ==========
 async function loadMyJobs() {
@@ -234,10 +354,18 @@ window.switchView = function(v) {
 // ========== POST JOB ==========
 window.showPostJobModal = function() {
     document.getElementById('post-job-modal').classList.remove('hidden');
+    setupLocationAutocomplete();
 }
 
 window.closePostJobModal = function() {
     document.getElementById('post-job-modal').classList.add('hidden');
+    // Clear form
+    const form = document.querySelector('#post-job-modal form');
+    if (form) form.reset();
+    document.getElementById('job-lat').value = '';
+    document.getElementById('job-lng').value = '';
+    document.getElementById('job-coords-display').value = '';
+    document.getElementById('location-status').classList.add('hidden');
 }
 
 window.postJob = async function(event) {
@@ -251,9 +379,20 @@ window.postJob = async function(event) {
         return;
     }
     
+    // Validate coordinates are set
+    const lat = document.getElementById('job-lat').value;
+    const lng = document.getElementById('job-lng').value;
+    
+    if (!lat || !lng) {
+        alert('⚠️ Please select a location from the suggestions to auto-fill coordinates.\n\nType your city name and choose from the dropdown.');
+        document.getElementById('job-location').focus();
+        return;
+    }
+    
     const jobData = {
         name: companyName,
         role: document.getElementById('job-role').value,
+        description: document.getElementById('job-description').value,
         package: '₹' + document.getElementById('job-package').value + ' LPA',
         pkg: parseFloat(document.getElementById('job-package').value),
         minCGPA: parseFloat(document.getElementById('job-cgpa').value),
@@ -261,8 +400,8 @@ window.postJob = async function(event) {
         deadline: document.getElementById('job-deadline').value,
         branch: selectedBranches,
         region: document.getElementById('job-region').value,
-        lat: parseFloat(document.getElementById('job-lat').value),
-        lng: parseFloat(document.getElementById('job-lng').value),
+        lat: parseFloat(lat),
+        lng: parseFloat(lng),
         companyId: curUserId,
         createdAt: new Date().toISOString()
     };
@@ -270,11 +409,8 @@ window.postJob = async function(event) {
     if (db) {
         try {
             await db.collection('companies').add(jobData);
-            alert('✅ Job posted successfully! It will appear on student dashboard and 3D globe.');
+            alert('✅ Job posted successfully! It will appear on student dashboard and 3D globe at your exact location!');
             closePostJobModal();
-            
-            // Reset form
-            event.target.reset();
             loadMyJobs();
         } catch (error) {
             console.error('Error posting job:', error);

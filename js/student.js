@@ -119,13 +119,18 @@ function updateCoreUI() {
             const isApplied = userApplications.some(app => app.companyId === c.id);
             const daysLeft = getDaysUntilDeadline(c.deadline);
             const isUrgent = daysLeft <= 3 && daysLeft >= 0;
+            const description = c.description || 'No description provided';
             
             return `
-            <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
+            <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden cursor-pointer" onmouseenter="showJobTooltip(event, ${c.id})" onmouseleave="hideJobTooltip()">
                 ${isUrgent ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-black px-4 py-1 rounded-bl-xl uppercase deadline-urgent">Urgent</div>' : ''}
                 <div class="bg-slate-50 w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl italic text-slate-300 group-hover:bg-blue-900 group-hover:text-white transition-all mb-6 md:mb-8">${c.name[0]}</div>
                 <h4 class="text-lg md:text-xl font-black text-slate-900 italic mb-1">${c.name}</h4>
                 <p class="text-blue-600 font-bold text-sm mb-4">${c.role}</p>
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="text-[9px] font-black uppercase text-slate-400">Location:</span>
+                    <span class="text-xs font-bold text-slate-600 truncate">${c.location}</span>
+                </div>
                 <div class="flex items-center space-x-2 mb-6">
                     <span class="text-[9px] font-black uppercase text-slate-400">Deadline:</span>
                     <span class="text-xs font-bold ${isUrgent ? 'text-red-500' : 'text-slate-600'}">${formatDeadline(c.deadline)}</span>
@@ -135,7 +140,7 @@ function updateCoreUI() {
                         <p class="text-[9px] font-black uppercase text-slate-300 mb-1">Package</p>
                         <p class="text-sm font-black text-slate-800">${c.package}</p>
                     </div>
-                    <button onclick="openApplyModal(${c.id})" class="${isApplied ? 'bg-emerald-600' : 'bg-slate-900'} text-white px-4 md:px-5 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all" ${isApplied ? 'disabled' : ''}>
+                    <button onclick="event.stopPropagation(); openApplyModal('${c.id}')" class="${isApplied ? 'bg-emerald-600' : 'bg-slate-900'} text-white px-4 md:px-5 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all" ${isApplied ? 'disabled' : ''}>
                         ${isApplied ? '✓ Applied' : 'Apply'}
                     </button>
                 </div>
@@ -388,8 +393,50 @@ window.openApplyModal = function(companyId) {
     document.getElementById('modal-cgpa').textContent = company.minCGPA;
     document.getElementById('modal-location').textContent = company.location;
     document.getElementById('modal-deadline').textContent = formatDeadline(company.deadline);
+    
+    // Add description if element exists
+    const descElement = document.getElementById('modal-description');
+    if (descElement) {
+        descElement.textContent = company.description || 'No description provided';
+    }
+    
     document.getElementById('apply-modal').classList.remove('hidden');
     document.getElementById('apply-modal').dataset.companyId = companyId;
+}
+
+// ========== JOB TOOLTIP ==========
+window.showJobTooltip = function(event, companyId) {
+    const company = COMPANIES.find(c => c.id === companyId);
+    if (!company || !company.description) return;
+    
+    // Remove existing tooltip
+    hideJobTooltip();
+    
+    // Create tooltip
+    const tooltip = document.createElement('div');
+    tooltip.id = 'job-tooltip';
+    tooltip.className = 'fixed bg-slate-900 text-white p-4 rounded-2xl shadow-2xl z-50 max-w-md';
+    tooltip.innerHTML = `
+        <p class="font-bold text-sm mb-2 text-emerald-400">📋 Job Description</p>
+        <p class="text-xs leading-relaxed">${company.description}</p>
+        <p class="text-[10px] text-slate-400 mt-3 italic">Click "Apply" to submit your application</p>
+    `;
+    
+    document.body.appendChild(tooltip);
+    
+    // Position tooltip near cursor
+    const updatePosition = (e) => {
+        tooltip.style.left = (e.clientX + 20) + 'px';
+        tooltip.style.top = (e.clientY - 50) + 'px';
+    };
+    
+    updatePosition(event);
+    event.currentTarget.addEventListener('mousemove', updatePosition);
+}
+
+window.hideJobTooltip = function() {
+    const tooltip = document.getElementById('job-tooltip');
+    if (tooltip) tooltip.remove();
 }
 
 window.closeApplyModal = function() {

@@ -79,7 +79,6 @@ function updateCoreUI() {
     
     document.getElementById('stat-t').innerText = COMPANIES.length;
     document.getElementById('stat-e').innerText = eligible.length;
-    document.getElementById('stat-i').innerText = COMPANIES.length - eligible.length;
     document.getElementById('cgpa-val').innerText = curCGPA.toFixed(1);
 
     // Mini list (dashboard preview)
@@ -87,15 +86,50 @@ function updateCoreUI() {
     if (eligible.length === 0) {
         miniList.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">No job openings available yet. Companies will post opportunities soon!</p>';
     } else {
-        miniList.innerHTML = eligible.slice(0, 3).map(c => `
-            <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-blue-900 text-white rounded-lg flex items-center justify-center font-black italic text-xs">${c.name[0]}</div>
-                    <p class="font-black text-xs text-slate-800">${c.name}</p>
+        miniList.innerHTML = eligible.slice(0, 3).map(c => {
+            const daysLeft = getDaysUntilDeadline(c.deadline);
+            const isUrgent = daysLeft <= 3 && daysLeft >= 0;
+            const isApplied = userApplications.some(app => app.companyId === c.id);
+            
+            return `
+            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all cursor-pointer" onclick="openApplyModal(${c.id})">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-blue-900 text-white rounded-xl flex items-center justify-center font-black italic text-sm">${c.name[0]}</div>
+                        <div>
+                            <p class="font-black text-sm text-slate-800">${c.name}</p>
+                            <p class="text-xs text-blue-600 font-bold">${c.role}</p>
+                        </div>
+                    </div>
+                    ${isApplied ? '<span class="text-[9px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-black">APPLIED</span>' : ''}
                 </div>
-                <p class="text-[10px] font-black text-blue-600">${c.package}</p>
+                <div class="grid grid-cols-2 gap-2 text-[10px] mb-3">
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Package:</span>
+                        <p class="text-slate-800 font-black">${c.package}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Min CGPA:</span>
+                        <p class="text-slate-800 font-black">${c.minCGPA}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Location:</span>
+                        <p class="text-slate-800 font-bold truncate">${c.location}</p>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 font-bold uppercase">Deadline:</span>
+                        <p class="font-black ${isUrgent ? 'text-red-500' : 'text-slate-800'}">${formatDeadline(c.deadline)}</p>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                    <div class="flex flex-wrap gap-1">
+                        ${c.branch && c.branch.length > 0 ? c.branch.slice(0, 2).map(b => `<span class="text-[8px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">${b}</span>`).join('') : ''}
+                    </div>
+                    <span class="text-[9px] text-slate-400 font-bold">${c.region || 'Global'}</span>
+                </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
     // Full job grid
@@ -426,9 +460,10 @@ async function loadUserApplications() {
     }
 }
 
-function generateNotifications() {
+async function generateNotifications() {
     notifications = [];
     
+    // Job deadline notifications
     COMPANIES.forEach(c => {
         const daysLeft = getDaysUntilDeadline(c.deadline);
         if (daysLeft <= 3 && daysLeft >= 0 && c.minCGPA <= curCGPA) {
@@ -436,10 +471,33 @@ function generateNotifications() {
                 type: 'deadline',
                 company: c.name,
                 message: `${c.name} deadline in ${daysLeft} day${daysLeft !== 1 ? 's' : ''}!`,
-                urgent: daysLeft <= 1
+                urgent: daysLeft <= 1,
+                time: c.deadline
             });
         }
     });
+    
+    // Load updates from placement officer
+    if (db) {
+        try {
+            const snapshot = await db.collection('updates').orderBy('createdAt', 'desc').limit(5).get();
+            snapshot.docs.forEach(doc => {
+                const update = doc.data();
+                notifications.push({
+                    type: 'update',
+                    message: update.title,
+                    company: update.message,
+                    urgent: update.priority === 'urgent',
+                    time: update.createdAt
+                });
+            });
+        } catch (error) {
+            console.error('Error loading updates:', error);
+        }
+    }
+    
+    // Sort by time (most recent first)
+    notifications.sort((a, b) => new Date(b.time) - new Date(a.time));
     
     updateNotificationUI();
 }
@@ -459,12 +517,15 @@ function updateNotificationUI() {
     if (notifications.length === 0) {
         list.innerHTML = '<p class="text-center text-slate-400 text-sm py-4">No notifications</p>';
     } else {
-        list.innerHTML = notifications.map(n => `
-            <div class="p-4 ${n.urgent ? 'bg-red-50 border-l-4 border-red-500' : 'bg-blue-50 border-l-4 border-blue-500'} rounded-xl">
-                <p class="font-bold text-sm text-slate-900">${n.message}</p>
-                <p class="text-xs text-slate-500 mt-1">${n.company}</p>
-            </div>
-        `).join('');
+        list.innerHTML = notifications.map(n => {
+            const icon = n.type === 'update' ? '📢' : '⏰';
+            return `
+                <div class="p-4 ${n.urgent ? 'bg-red-50 border-l-4 border-red-500' : 'bg-blue-50 border-l-4 border-blue-500'} rounded-xl">
+                    <p class="font-bold text-sm text-slate-900">${icon} ${n.message}</p>
+                    <p class="text-xs text-slate-500 mt-1">${n.company}</p>
+                </div>
+            `;
+        }).join('');
     }
 }
 
@@ -743,10 +804,64 @@ window.loadProfileData = async function() {
             document.getElementById('profile-branch').value = userData.branch || 'CSE';
             document.getElementById('profile-year').value = userData.year || '1';
             document.getElementById('profile-cgpa').value = userData.cgpa || '0';
+            document.getElementById('profile-skills').value = userData.skills || '';
+            document.getElementById('profile-about').value = userData.about || '';
         }
     } catch (error) {
         console.error('Error loading profile:', error);
         alert('❌ Failed to load profile data');
+    }
+}
+
+window.saveProfile = async function(event) {
+    event.preventDefault();
+    
+    if (!db || !curUserId) {
+        alert('❌ Not connected to database');
+        return;
+    }
+    
+    const name = document.getElementById('profile-name').value;
+    const rollNumber = document.getElementById('profile-roll').value;
+    const branch = document.getElementById('profile-branch').value;
+    const year = document.getElementById('profile-year').value;
+    const cgpa = parseFloat(document.getElementById('profile-cgpa').value);
+    const skills = document.getElementById('profile-skills').value;
+    const about = document.getElementById('profile-about').value;
+    
+    try {
+        await db.collection('users').doc(curUserId).update({
+            name: name,
+            rollNumber: rollNumber,
+            branch: branch,
+            year: year,
+            cgpa: cgpa,
+            skills: skills,
+            about: about,
+            updatedAt: new Date().toISOString()
+        });
+        
+        // Update session storage
+        sessionStorage.setItem('userName', name);
+        
+        // Update global variables
+        curCGPA = cgpa;
+        curBranch = branch;
+        
+        // Update UI
+        document.getElementById('prof-name').innerText = name;
+        document.getElementById('cgpa-slider').value = cgpa;
+        
+        alert('✅ Profile updated successfully!');
+        
+        // Refresh data
+        await loadCompaniesFromFirebase();
+        updateCoreUI();
+        generateNotifications();
+        
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('❌ Failed to save profile');
     }
 };
 

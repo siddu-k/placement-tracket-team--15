@@ -326,3 +326,204 @@ function formatDate(dateStr) {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
+
+// ========== ANALYTICS ==========
+let charts = {};
+
+async function loadAnalytics() {
+    if (!db) return;
+    
+    try {
+        const studentsSnapshot = await db.collection('users').where('role', '==', 'student').get();
+        const students = studentsSnapshot.docs.map(doc => doc.data());
+        
+        const applicationsSnapshot = await db.collection('applications').get();
+        const applications = applicationsSnapshot.docs.map(doc => doc.data());
+        
+        // Branch Distribution
+        const branchCounts = {};
+        students.forEach(s => {
+            branchCounts[s.branch] = (branchCounts[s.branch] || 0) + 1;
+        });
+        
+        createOrUpdateChart('branchChart', 'bar', {
+            labels: Object.keys(branchCounts),
+            datasets: [{
+                label: 'Students',
+                data: Object.values(branchCounts),
+                backgroundColor: ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899']
+            }]
+        });
+        
+        // Application Status
+        const statusCounts = { pending: 0, accepted: 0, rejected: 0 };
+        applications.forEach(app => {
+            statusCounts[app.status] = (statusCounts[app.status] || 0) + 1;
+        });
+        
+        createOrUpdateChart('statusChart', 'doughnut', {
+            labels: ['Pending', 'Accepted', 'Rejected'],
+            datasets: [{
+                data: [statusCounts.pending, statusCounts.accepted, statusCounts.rejected],
+                backgroundColor: ['#fbbf24', '#10b981', '#ef4444']
+            }]
+        });
+        
+        // CGPA Distribution
+        const cgpaRanges = { '0-5': 0, '5-6': 0, '6-7': 0, '7-8': 0, '8-9': 0, '9-10': 0 };
+        students.forEach(s => {
+            const cgpa = parseFloat(s.cgpa);
+            if (cgpa < 5) cgpaRanges['0-5']++;
+            else if (cgpa < 6) cgpaRanges['5-6']++;
+            else if (cgpa < 7) cgpaRanges['6-7']++;
+            else if (cgpa < 8) cgpaRanges['7-8']++;
+            else if (cgpa < 9) cgpaRanges['8-9']++;
+            else cgpaRanges['9-10']++;
+        });
+        
+        createOrUpdateChart('cgpaChart', 'bar', {
+            labels: Object.keys(cgpaRanges),
+            datasets: [{
+                label: 'Students',
+                data: Object.values(cgpaRanges),
+                backgroundColor: '#8b5cf6'
+            }]
+        });
+        
+        // Year Distribution
+        const yearCounts = {};
+        students.forEach(s => {
+            const year = s.year || 'Unknown';
+            yearCounts[year] = (yearCounts[year] || 0) + 1;
+        });
+        
+        createOrUpdateChart('yearChart', 'pie', {
+            labels: Object.keys(yearCounts).map(y => `Year ${y}`),
+            datasets: [{
+                data: Object.values(yearCounts),
+                backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+            }]
+        });
+        
+        // Monthly Trend
+        const monthlyData = {};
+        applications.forEach(app => {
+            const month = new Date(app.appliedAt).toLocaleDateString('en-US', { month: 'short' });
+            monthlyData[month] = (monthlyData[month] || 0) + 1;
+        });
+        
+        createOrUpdateChart('trendChart', 'line', {
+            labels: Object.keys(monthlyData),
+            datasets: [{
+                label: 'Applications',
+                data: Object.values(monthlyData),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        });
+        
+    } catch (error) {
+        console.error('Error loading analytics:', error);
+    }
+}
+
+function createOrUpdateChart(canvasId, type, data) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    
+    // Destroy existing chart
+    if (charts[canvasId]) {
+        charts[canvasId].destroy();
+    }
+    
+    // Create new chart
+    charts[canvasId] = new Chart(ctx, {
+        type: type,
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// ========== UPDATES ==========
+async function loadUpdates() {
+    if (!db) return;
+    
+    try {
+        const snapshot = await db.collection('updates').orderBy('createdAt', 'desc').limit(20).get();
+        const updates = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const list = document.getElementById('updates-list');
+        list.innerHTML = '';
+        
+        if (updates.length === 0) {
+            list.innerHTML = '<p class="text-gray-500 text-sm">No updates posted yet.</p>';
+            return;
+        }
+        
+        updates.forEach(update => {
+            const priorityColors = {
+                normal: 'bg-blue-100 text-blue-800',
+                important: 'bg-yellow-100 text-yellow-800',
+                urgent: 'bg-red-100 text-red-800'
+            };
+            
+            const div = document.createElement('div');
+            div.className = 'border border-gray-200 rounded-2xl p-6';
+            div.innerHTML = `
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-bold text-lg">${update.title}</h3>
+                    <span class="px-3 py-1 rounded-full text-xs font-bold ${priorityColors[update.priority]}">${update.priority.toUpperCase()}</span>
+                </div>
+                <p class="text-gray-700 mb-3">${update.message}</p>
+                <div class="flex justify-between items-center text-xs text-gray-500">
+                    <span>Posted by ${update.postedBy}</span>
+                    <span>${formatDate(update.createdAt)}</span>
+                </div>
+            `;
+            list.appendChild(div);
+        });
+    } catch (error) {
+        console.error('Error loading updates:', error);
+    }
+}
+
+document.getElementById('update-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (!db) {
+        alert('Firebase not configured');
+        return;
+    }
+    
+    const title = document.getElementById('update-title').value;
+    const message = document.getElementById('update-message').value;
+    const priority = document.getElementById('update-priority').value;
+    
+    try {
+        await db.collection('updates').add({
+            title: title,
+            message: message,
+            priority: priority,
+            postedBy: sessionStorage.getItem('userName') || 'Placement Officer',
+            createdAt: new Date().toISOString(),
+            read: false
+        });
+        
+        alert('✅ Update posted successfully!');
+        document.getElementById('update-form').reset();
+        loadUpdates();
+    } catch (error) {
+        console.error('Error posting update:', error);
+        alert('❌ Failed to post update');
+    }
+});

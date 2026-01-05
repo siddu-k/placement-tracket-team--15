@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+    --pydah-blue: #1e3a8a;
+    --pydah-accent: #3b82f6;
+}
+
+body { 
+    font-family: 'Plus Jakarta Sans', sans-serif; 
+    letter-spacing: -0.01em;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow: 0 10px 40px -10px rgba(30, 58, 138, 0.1);
+}
+
+.sidebar-active {
+    background: linear-gradient(90deg, #f0f7ff 0%, #ffffff 100%);
+    border-right: 4px solid var(--pydah-blue);
+    color: var(--pydah-blue);
+    font-weight: 700;
+}
+
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+#canvas-container canvas { 
+    width: 100% !important; 
+    height: 100% !important; 
+    border-radius: 2.5rem; 
+    outline: none;
+}
+
+.login-bg {
+    background: radial-gradient(circle at 0% 0%, #f8fafc 0%, #eff6ff 100%);
+}
+
+.pydah-gradient-text {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+input[type=range] {
+    cursor: pointer;
+}
+
+.deadline-urgent { animation: pulse 2s infinite; }
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.notification-badge {
+    animation: bounce 1s infinite;
+}
+@keyframes bounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+@media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+}

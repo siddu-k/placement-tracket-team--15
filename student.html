@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Pydah Placement Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#F8FAFC] text-slate-900 overflow-hidden">
+
+    <!-- Main Application -->
+    <div class="flex h-screen relative">
+        <!-- Mobile Menu Toggle -->
+        <button id="mobile-menu-btn" class="md:hidden fixed top-6 left-6 z-50 bg-blue-900 text-white p-3 rounded-xl shadow-lg">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        
+        <!-- Notifications Panel -->
+        <div id="notif-panel" class="hidden fixed top-24 right-6 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-40 max-h-96 overflow-y-auto">
+            <div class="p-6 border-b border-slate-100">
+                <h3 class="font-black text-slate-900">Notifications</h3>
+            </div>
+            <div id="notif-list" class="p-4 space-y-3"></div>
+        </div>
+
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar w-72 bg-white border-r border-slate-200 flex flex-col z-30 fixed md:relative h-full transition-transform duration-300">
+            <div class="p-8">
+                <div class="flex flex-col">
+                    <span class="font-black text-2xl tracking-tighter text-slate-800 uppercase leading-none">Pydah</span>
+                    <span class="text-[9px] font-bold text-blue-600 uppercase tracking-[0.2em] mt-1">Placement Tracker</span>
+                </div>
+            </div>
+
+            <div class="flex-1 px-4 space-y-1.5">
+                <div class="space-y-1">
+                    <button onclick="switchView('dashboard')" id="btn-dashboard" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl sidebar-active transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        <span class="font-bold text-sm">Dashboard</span>
+                    </button>
+                    <button onclick="switchView('map')" id="btn-map" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20 15.3 15.3 0 0 1 0-20z"/></svg>
+                        <span class="font-bold text-sm">Global Opportunities</span>
+                    </button>
+                    <button onclick="switchView('jobs')" id="btn-jobs" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        <span class="font-bold text-sm">Job Listings</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6 mt-auto">
+                <div class="bg-blue-900 rounded-[2rem] p-6 text-white shadow-2xl shadow-blue-900/20">
+                    <p id="prof-name" class="font-black text-lg italic truncate">Student</p>
+                    <p class="text-[10px] text-blue-300 font-bold uppercase tracking-widest mb-4">Engineering Student</p>
+                    
+                    <div class="pt-4 border-t border-blue-800 space-y-4">
+                        <div class="flex justify-between items-end">
+                            <span class="text-[10px] uppercase font-bold text-blue-400">CGPA</span>
+                            <span id="cgpa-val" class="text-2xl font-black text-white">7.5</span>
+                        </div>
+                        <input type="range" id="cgpa-slider" min="0" max="10" step="0.1" value="7.5" class="w-full accent-white">
+                    </div>
+                </div>
+                <button onclick="logout()" class="w-full mt-4 py-3 bg-slate-100 text-slate-500 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 hover:text-red-600 transition-all">Sign Out</button>
+            </div>
+        </nav>
+
+        <!-- Main Workspace -->
+        <main class="flex-1 overflow-y-auto custom-scrollbar md:ml-0">
+            <header class="sticky top-0 z-20 bg-white/80 backdrop-blur-md px-6 md:px-10 py-6 border-b border-slate-100 flex flex-wrap md:flex-nowrap justify-between items-center gap-4">
+                <div class="md:ml-0 ml-12">
+                    <h1 id="v-title" class="text-xl md:text-2xl font-black text-slate-900 italic tracking-tight uppercase">Dashboard</h1>
+                    <p id="v-sub" class="text-xs font-bold text-slate-400 mt-0.5">Campus eligibility metrics.</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative group">
+                        <input type="text" id="j-search" placeholder="Search companies..." class="pl-12 pr-6 py-3 bg-slate-50 border border-slate-200 rounded-2xl w-full md:w-80 text-sm focus:bg-white focus:ring-4 focus:ring-blue-100 transition-all outline-none">
+                        <svg class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
+                    <button id="notif-btn" class="relative p-3 bg-slate-50 rounded-xl hover:bg-blue-50 transition-all">
+                        <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                        <span id="notif-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center notification-badge">0</span>
+                    </button>
+                </div>
+            </header>
+
+            <div id="view-dashboard" class="content-view p-6 md:p-10 space-y-6 md:space-y-10">
+                <!-- Quick Filters -->
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 space-y-4">
+                    <h3 class="font-black text-sm text-slate-900 mb-4">FILTER BY</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <select id="filter-branch" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none">
+                            <option value="all">All Branches</option>
+                            <option value="cse">CSE</option>
+                            <option value="ece">ECE</option>
+                            <option value="eee">EEE</option>
+                            <option value="mech">Mechanical</option>
+                            <option value="civil">Civil</option>
+                        </select>
+                        <select id="filter-location" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none">
+                            <option value="all">All Locations</option>
+                            <option value="india">India</option>
+                            <option value="usa">USA</option>
+                            <option value="europe">Europe</option>
+                            <option value="apac">APAC</option>
+                        </select>
+                        <select id="filter-package" class="px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-100 outline-none">
+                            <option value="all">All Packages</option>
+                            <option value="0-10">0-10 LPA</option>
+                            <option value="10-20">10-20 LPA</option>
+                            <option value="20-40">20-40 LPA</option>
+                            <option value="40+">40+ LPA</option>
+                        </select>
+                        <button id="clear-filters" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-sm font-bold hover:bg-blue-600 transition-all">Clear All</button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 mb-2">Total Drive</p>
+                        <h3 id="stat-t" class="text-5xl font-black text-slate-900">10</h3>
+                        <p class="text-xs font-bold text-slate-400 mt-4">Visiting campus this term</p>
+                    </div>
+                    <div class="bg-blue-900 p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-900/10 transition-all hover:-translate-y-1">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-blue-300 mb-2">Qualified</p>
+                        <h3 id="stat-e" class="text-5xl font-black">6</h3>
+                        <p class="text-xs font-bold opacity-60 mt-4">Match your current CGPA</p>
+                    </div>
+                    <div class="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm transition-all hover:shadow-xl hover:-translate-y-1">
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300 mb-2">Requirement Gap</p>
+                        <h3 id="stat-i" class="text-5xl font-black text-red-500">4</h3>
+                        <p class="text-xs font-bold text-slate-400 mt-4">Require CGPA boost</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-5 gap-10">
+                    <div class="lg:col-span-3 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group cursor-pointer" onclick="switchView('map')">
+                        <div class="relative z-10">
+                            <span class="bg-blue-900 text-white text-[9px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest">Global Reach</span>
+                            <h2 class="text-4xl font-black text-slate-900 mt-8 mb-4 leading-none italic">Interactive <br/>Partner Map</h2>
+                            <p class="text-slate-500 max-w-sm mb-8 font-medium">Visualize where our corporate partners are headquartered globally.</p>
+                            <span class="inline-flex items-center space-x-2 text-blue-600 font-black uppercase tracking-widest text-xs">Explore Map <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14m-7-7 7 7-7 7"/></svg></span>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-slate-50 p-8 rounded-[3rem]">
+                        <h2 class="text-xl font-black text-slate-900 italic mb-6">Eligible Picks</h2>
+                        <div id="mini-list" class="space-y-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-map" class="content-view hidden p-10 h-[calc(100vh-120px)]">
+                <div class="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden h-full relative" id="canvas-container">
+                    <div class="absolute bottom-10 left-10 glass-card p-6 rounded-3xl w-64 z-10">
+                        <p class="text-[10px] font-black uppercase text-blue-900 mb-1">Status</p>
+                        <p class="text-sm font-bold text-slate-700">Viewing qualified partners</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-jobs" class="content-view hidden p-6 md:p-10 pb-20">
+                <div id="grid-jobs" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8"></div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Application Modal -->
+    <div id="apply-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+        <div class="bg-white rounded-3xl p-8 md:p-12 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 id="modal-company" class="text-3xl font-black text-slate-900 italic">Google</h2>
+                    <p id="modal-role" class="text-blue-600 font-bold mt-1">Software Engineer</p>
+                </div>
+                <button onclick="closeApplyModal()" class="p-2 hover:bg-slate-100 rounded-xl transition-all">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-50 p-4 rounded-xl">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Package</p>
+                        <p id="modal-package" class="text-xl font-black text-slate-900">₹45 LPA</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Min CGPA</p>
+                        <p id="modal-cgpa" class="text-xl font-black text-slate-900">8.5</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Location</p>
+                        <p id="modal-location" class="text-xl font-black text-slate-900">Mountain View</p>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-xl">
+                        <p class="text-xs font-bold text-slate-400 uppercase mb-1">Deadline</p>
+                        <p id="modal-deadline" class="text-xl font-black text-red-500">Jan 12</p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-bold text-slate-700 mb-2">Why do you want to join?</label>
+                    <textarea id="apply-reason" rows="4" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Share your motivation..."></textarea>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <button onclick="submitApplication()" class="flex-1 bg-blue-900 text-white py-4 rounded-xl font-black uppercase tracking-widest hover:bg-blue-700 transition-all">Submit Application</button>
+                    <button onclick="closeApplyModal()" class="px-6 bg-slate-100 text-slate-600 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/student.js"></script>
+</body>
+</html>

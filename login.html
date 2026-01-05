@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Pydah Placement Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#F8FAFC] text-slate-900">
+
+    <!-- Login Screen -->
+    <div class="fixed inset-0 z-[100] bg-white flex login-bg overflow-y-auto">
+        <div class="m-auto max-w-5xl w-full p-6 lg:p-12 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+            <div class="space-y-8">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-blue-900 p-3 rounded-2xl text-white shadow-2xl shadow-blue-900/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                    </div>
+                    <div>
+                        <span class="block font-black text-3xl tracking-tighter text-slate-900 uppercase">Pydah</span>
+                        <span class="block text-xs font-bold text-blue-600 uppercase tracking-[0.3em]">College of Engineering</span>
+                    </div>
+                </div>
+                
+                <h1 class="text-5xl font-extrabold text-slate-900 leading-[1.1]">Placement <br/><span class="pydah-gradient-text">Tracking System</span></h1>
+                <p class="text-slate-500 text-lg max-w-md">Bridging the gap between academic excellence and professional global careers for Pydahites.</p>
+                
+                <div class="flex space-x-6 py-4">
+                    <div class="text-center">
+                        <p class="text-2xl font-black text-slate-800">500+</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Placements</p>
+                    </div>
+                    <div class="w-px h-10 bg-slate-200"></div>
+                    <div class="text-center">
+                        <p class="text-2xl font-black text-slate-800">120+</p>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Partners</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-10 rounded-[3rem] shadow-2xl shadow-blue-900/5 border border-slate-100">
+                <!-- Role Selector -->
+                <div id="role-selector">
+                    <h2 class="text-2xl font-bold text-slate-800 mb-8">Select Your Role</h2>
+                    <div class="space-y-4">
+                        <button onclick="showLoginForm('student')" class="group w-full p-6 border-2 border-slate-50 rounded-3xl text-left hover:border-blue-600 hover:bg-blue-50/30 transition-all flex justify-between items-center">
+                            <div>
+                                <p class="font-black text-slate-800 text-xl italic">Student</p>
+                                <p class="text-xs text-slate-500 font-medium">Browse & apply for opportunities</p>
+                            </div>
+                            <div class="bg-slate-50 text-slate-400 p-3 rounded-2xl group-hover:bg-blue-600 group-hover:text-white transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            </div>
+                        </button>
+                        <button onclick="showAdminOptions()" class="group w-full p-6 border-2 border-slate-50 rounded-3xl text-left hover:border-slate-900 hover:bg-slate-50 transition-all flex justify-between items-center">
+                            <div>
+                                <p class="font-black text-slate-800 text-xl italic">Administration</p>
+                                <p class="text-xs text-slate-500 font-medium">Placement Officer & Companies</p>
+                            </div>
+                            <div class="bg-slate-50 text-slate-400 p-3 rounded-2xl group-hover:bg-slate-900 group-hover:text-white transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Role Options -->
+                <div id="admin-options" class="hidden">
+                    <button onclick="backToRoles()" class="flex items-center text-blue-600 font-bold text-xs mb-8 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-6 italic">Admin Login</h2>
+                    <div class="space-y-4">
+                        <button onclick="showLoginForm('officer')" class="w-full p-6 border-2 border-slate-100 rounded-2xl text-left hover:bg-blue-900 hover:text-white transition-all">
+                            <p class="font-black">Placement Officer</p>
+                            <p class="text-xs opacity-70">Full campus control</p>
+                        </button>
+                        <button onclick="showLoginForm('company')" class="w-full p-6 border-2 border-slate-100 rounded-2xl text-left hover:bg-emerald-600 hover:text-white transition-all">
+                            <p class="font-black">Corporate Partner</p>
+                            <p class="text-xs opacity-70">Post and review applications</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Student Login Form -->
+                <div id="login-form-student" class="hidden">
+                    <button onclick="backToRoles()" class="flex items-center text-blue-600 font-bold text-xs mb-6 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2 italic">Student Login</h2>
+                    <p class="text-xs text-slate-500 mb-6">Access your placement dashboard</p>
+                    
+                    <form onsubmit="loginUser(event, 'student')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Email Address</label>
+                            <input type="email" id="student-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                            <input type="password" id="student-password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Sign In</button>
+                    </form>
+                    
+                    <div class="text-center mt-6">
+                        <p class="text-xs text-slate-500">Don't have an account? <button onclick="showSignupForm('student')" class="text-blue-600 font-bold hover:underline">Create Account</button></p>
+                    </div>
+                </div>
+
+                <!-- Placement Officer Login Form -->
+                <div id="login-form-officer" class="hidden">
+                    <button onclick="showAdminOptions()" class="flex items-center text-blue-600 font-bold text-xs mb-6 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2 italic">Officer Login</h2>
+                    <p class="text-xs text-slate-500 mb-6">Placement administration access</p>
+                    
+                    <form onsubmit="loginUser(event, 'officer')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Official Email</label>
+                            <input type="email" id="officer-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                            <input type="password" id="officer-password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Sign In</button>
+                    </form>
+                    
+                    <div class="text-center mt-6">
+                        <p class="text-xs text-slate-500">Need access? <button onclick="showSignupForm('officer')" class="text-blue-600 font-bold hover:underline">Request Account</button></p>
+                    </div>
+                </div>
+
+                <!-- Company Login Form -->
+                <div id="login-form-company" class="hidden">
+                    <button onclick="showAdminOptions()" class="flex items-center text-emerald-600 font-bold text-xs mb-6 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2 italic">Company Login</h2>
+                    <p class="text-xs text-slate-500 mb-6">Partner portal access</p>
+                    
+                    <form onsubmit="loginUser(event, 'company')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Company Email</label>
+                            <input type="email" id="company-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                            <input type="password" id="company-password" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-500 transition-all">Sign In</button>
+                    </form>
+                    
+                    <div class="text-center mt-6">
+                        <p class="text-xs text-slate-500">New partner? <button onclick="showSignupForm('company')" class="text-emerald-600 font-bold hover:underline">Register Company</button></p>
+                    </div>
+                </div>
+
+                <!-- Student Signup Form -->
+                <div id="signup-form-student" class="hidden">
+                    <button onclick="showLoginForm('student')" class="flex items-center text-blue-600 font-bold text-xs mb-6 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back to Login
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2 italic">Create Student Account</h2>
+                    <p class="text-xs text-slate-500 mb-6">Join Pydah Placement Portal</p>
+                    
+                    <form onsubmit="registerUser(event, 'student')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Full Name</label>
+                            <input type="text" id="signup-student-name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Roll Number</label>
+                            <input type="text" id="signup-student-roll" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none" placeholder="e.g., 21B81A05A1">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Email Address</label>
+                            <input type="email" id="signup-student-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-2">Branch</label>
+                                <select id="signup-student-branch" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                                    <option value="">Select</option>
+                                    <option value="cse">CSE</option>
+                                    <option value="ece">ECE</option>
+                                    <option value="eee">EEE</option>
+                                    <option value="mech">Mechanical</option>
+                                    <option value="civil">Civil</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-2">Year</label>
+                                <select id="signup-student-year" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                                    <option value="">Select</option>
+                                    <option value="1">1st Year</option>
+                                    <option value="2">2nd Year</option>
+                                    <option value="3">3rd Year</option>
+                                    <option value="4">4th Year</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">CGPA</label>
+                            <input type="number" id="signup-student-cgpa" min="0" max="10" step="0.01" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                            <input type="password" id="signup-student-password" required minlength="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Create Account</button>
+                    </form>
+                </div>
+
+                <!-- Officer Signup Form -->
+                <div id="signup-form-officer" class="hidden">
+                    <button onclick="showLoginForm('officer')" class="flex items-center text-blue-600 font-bold text-xs mb-6 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back to Login
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2 italic">Officer Registration</h2>
+                    <p class="text-xs text-slate-500 mb-6">Request admin access</p>
+                    
+                    <form onsubmit="registerUser(event, 'officer')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Full Name</label>
+                            <input type="text" id="signup-officer-name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Official Email</label>
+                            <input type="email" id="signup-officer-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Department</label>
+                            <input type="text" id="signup-officer-dept" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none" placeholder="e.g., Training & Placement">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                            <input type="password" id="signup-officer-password" required minlength="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-100 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-900 text-white py-3 rounded-xl font-bold hover:bg-blue-700 transition-all">Submit Request</button>
+                    </form>
+                </div>
+
+                <!-- Company Signup Form -->
+                <div id="signup-form-company" class="hidden">
+                    <button onclick="showLoginForm('company')" class="flex items-center text-emerald-600 font-bold text-xs mb-6 hover:underline uppercase tracking-widest">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Back to Login
+                    </button>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-2 italic">Company Registration</h2>
+                    <p class="text-xs text-slate-500 mb-6">Become a hiring partner</p>
+                    
+                    <form onsubmit="registerUser(event, 'company')" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Company Name</label>
+                            <input type="text" id="signup-company-name" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">HR Email</label>
+                            <input type="email" id="signup-company-email" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Industry</label>
+                            <select id="signup-company-industry" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none">
+                                <option value="">Select Industry</option>
+                                <option value="tech">Technology</option>
+                                <option value="finance">Finance</option>
+                                <option value="consulting">Consulting</option>
+                                <option value="manufacturing">Manufacturing</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-2">Password</label>
+                            <input type="password" id="signup-company-password" required minlength="6" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-100 outline-none">
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-500 transition-all">Register Company</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

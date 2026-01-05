@@ -830,7 +830,7 @@ window.saveProfile = async function(event) {
     const name = document.getElementById('profile-name').value;
     const rollNumber = document.getElementById('profile-roll').value;
     const branch = document.getElementById('profile-branch').value;
-    const year = document.getElementById('profile-year').value;
+    const year = parseInt(document.getElementById('profile-year').value);
     const cgpa = parseFloat(document.getElementById('profile-cgpa').value);
     const skills = document.getElementById('profile-skills').value;
     const about = document.getElementById('profile-about').value;
@@ -867,44 +867,7 @@ window.saveProfile = async function(event) {
         
     } catch (error) {
         console.error('Error saving profile:', error);
-        alert('❌ Failed to save profile');
-    }
-};
-
-window.saveProfile = async function(event) {
-    event.preventDefault();
-    
-    if (!db || !curUserId) {
-        alert('❌ Firebase not configured');
-        return;
-    }
-    
-    const updatedData = {
-        name: document.getElementById('profile-name').value,
-        rollNumber: document.getElementById('profile-roll').value,
-        branch: document.getElementById('profile-branch').value,
-        year: parseInt(document.getElementById('profile-year').value),
-        cgpa: parseFloat(document.getElementById('profile-cgpa').value)
-    };
-    
-    try {
-        await db.collection('users').doc(curUserId).update(updatedData);
-        
-        // Update local variables
-        curBranch = updatedData.branch;
-        curCGPA = updatedData.cgpa;
-        
-        // Update CGPA slider
-        document.getElementById('cgpa-slider').value = curCGPA;
-        
-        // Refresh UI
-        updateCoreUI();
-        generateNotifications();
-        
-        alert('✅ Profile updated successfully!');
-    } catch (error) {
-        console.error('Error updating profile:', error);
-        alert('❌ Failed to update profile');
+        alert('❌ Failed to save profile: ' + error.message);
     }
 };
 

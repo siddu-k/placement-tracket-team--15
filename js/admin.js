@@ -5,6 +5,7 @@ let userName = '';
 let students = [];
 let drives = [];
 let applications = [];
+let registeredCompanies = []; // Company user accounts
 
 // Check if user is logged in as officer
 if (!sessionStorage.getItem('userRole') || sessionStorage.getItem('userRole') !== 'officer') {
@@ -20,6 +21,7 @@ document.getElementById('prof-name').innerText = userName;
 loadStudents();
 loadDrives();
 loadApplications();
+loadRegisteredCompanies();
 
 // ========== LOAD STUDENTS ==========
 async function loadStudents() {
@@ -64,6 +66,22 @@ async function loadApplications() {
         updateApplicationsList();
     } catch (error) {
         console.error('Error loading applications:', error);
+    }
+}
+
+// ========== LOAD REGISTERED COMPANIES ==========
+async function loadRegisteredCompanies() {
+    if (!db) return;
+    
+    try {
+        const snapshot = await db.collection('users')
+            .where('role', '==', 'company')
+            .get();
+        
+        registeredCompanies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log('Loaded companies:', registeredCompanies.length);
+    } catch (error) {
+        console.error('Error loading companies:', error);
     }
 }
 
@@ -244,6 +262,13 @@ window.switchView = function(v) {
 
 // ========== ADD DRIVE ==========
 window.showAddDriveModal = function() {
+    // Populate company dropdown
+    const companySelect = document.getElementById('drive-company-select');
+    companySelect.innerHTML = '<option value="">-- Choose a registered company --</option>' +
+        registeredCompanies.map(c => 
+            `<option value="${c.id}" data-name="${c.name || c.email}">${c.name || c.email}</option>`
+        ).join('');
+    
     document.getElementById('add-drive-modal').classList.remove('hidden');
 }
 
@@ -254,18 +279,33 @@ window.closeAddDriveModal = function() {
 window.addDrive = async function(event) {
     event.preventDefault();
     
+    const companySelect = document.getElementById('drive-company-select');
+    const selectedOption = companySelect.options[companySelect.selectedIndex];
+    const companyId = companySelect.value;
+    const companyName = selectedOption.getAttribute('data-name');
+    
+    if (!companyId) {
+        alert('Please select a company');
+        return;
+    }
+    
+    // Find selected company to get its details
+    const company = registeredCompanies.find(c => c.id === companyId);
+    
     const driveData = {
-        name: document.getElementById('drive-company').value,
+        name: companyName,
         role: document.getElementById('drive-role').value,
         package: '₹' + document.getElementById('drive-package').value + ' LPA',
         pkg: parseFloat(document.getElementById('drive-package').value),
         minCGPA: parseFloat(document.getElementById('drive-cgpa').value),
-        location: document.getElementById('drive-location').value,
         deadline: document.getElementById('drive-deadline').value,
-        branch: ['cse', 'ece', 'eee', 'mech', 'civil'],
-        region: 'india',
-        lat: 12.971,
-        lng: 77.594,
+        // Use company's location if available, otherwise default
+        location: company?.location || 'India',
+        region: company?.region || 'india',
+        lat: company?.lat || 20.5937,
+        lng: company?.lng || 78.9629,
+        branch: ['cse', 'ece', 'eee', 'mech', 'civil', 'it'],
+        companyUserId: companyId, // Link to company account
         createdAt: new Date().toISOString()
     };
     

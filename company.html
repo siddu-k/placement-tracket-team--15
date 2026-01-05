@@ -38,6 +38,10 @@
                     <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     <span class="font-bold text-sm">Applicants</span>
                 </button>
+                <button onclick="switchView('ai-ats')" id="btn-ai-ats" class="nav-btn w-full flex items-center space-x-3 py-3.5 px-5 rounded-2xl text-slate-500 hover:bg-slate-50 transition-all">
+                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    <span class="font-bold text-sm">AI ATS Assistant</span>
+                </button>
             </div>
 
             <div class="p-6 mt-auto">
@@ -101,47 +105,46 @@
     </div>
 
     <!-- Post Job Modal -->
-    <div id="post-job-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6 overflow-y-auto">
-        <div class="bg-white rounded-3xl p-12 max-w-3xl w-full my-8">
-            <h2 class="text-3xl font-black text-slate-900 italic mb-6">Post New Job Opening</h2>
-            <form onsubmit="postJob(event)" class="space-y-5">
-                <div class="grid grid-cols-2 gap-4">
+    <div id="post-job-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto my-6">
+            <h2 class="text-2xl font-black text-slate-900 italic mb-5">Post New Job Opening</h2>
+            <form onsubmit="postJob(event)" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-2">Job Role *</label>
-                        <input type="text" id="job-role" required placeholder="e.g., Software Engineer" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Job Role *</label>
+                        <input type="text" id="job-role" required placeholder="e.g., Software Engineer" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-2">Package (LPA) *</label>
-                        <input type="number" step="0.1" id="job-package" required placeholder="e.g., 12.5" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Package (LPA) *</label>
+                        <input type="number" step="0.1" id="job-package" required placeholder="e.g., 12.5" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-2">Min CGPA *</label>
-                        <input type="number" step="0.01" min="0" max="10" id="job-cgpa" required placeholder="e.g., 7.5" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Min CGPA *</label>
+                        <input type="number" step="0.01" min="0" max="10" id="job-cgpa" required placeholder="e.g., 7.5" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-600 mb-2">Deadline *</label>
-                        <input type="date" id="job-deadline" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100">
+                        <label class="block text-xs font-bold text-slate-600 mb-1.5">Deadline *</label>
+                        <input type="date" id="job-deadline" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-2">Job Description *</label>
-                    <textarea id="job-description" required rows="4" placeholder="Describe the role, responsibilities, required skills, etc." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100 resize-none"></textarea>
-                    <p class="text-[10px] text-slate-500 mt-1">Students will see this when they hover on your job card</p>
+                    <label class="block text-xs font-bold text-slate-600 mb-1.5">Job Description *</label>
+                    <textarea id="job-description" required rows="3" placeholder="Describe the role, responsibilities, required skills, etc." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 resize-none text-sm"></textarea>
                 </div>
 
-                <div class="space-y-4">
-                    <h3 class="font-bold text-slate-700 text-sm">Location Details</h3>
-                    <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-bold text-slate-700 text-xs mb-2">Location Details</h3>
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="col-span-2">
-                            <label class="block text-xs font-bold text-slate-600 mb-2">Office Location *</label>
-                            <input type="text" id="job-location" required placeholder="Start typing city name... (e.g., Bangalore)" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100" autocomplete="off">
-                            <div id="location-suggestions" class="hidden mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto"></div>
-                            <p class="text-[10px] text-emerald-600 mt-2 hidden" id="location-status">✓ Coordinates auto-detected!</p>
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">Office Location *</label>
+                            <input type="text" id="job-location" required placeholder="Start typing city name..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm" autocomplete="off">
+                            <div id="location-suggestions" class="hidden mt-2 bg-white border border-slate-200 rounded-lg shadow-lg max-h-40 overflow-y-auto"></div>
+                            <p class="text-[10px] text-emerald-600 mt-1.5 hidden" id="location-status">✓ Coordinates detected!</p>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-2">Region *</label>
-                            <select id="job-region" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-emerald-100">
+                            <label class="block text-xs font-bold text-slate-600 mb-1.5">Region *</label>
+                            <select id="job-region" required class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-emerald-100 text-sm">
                                 <option value="">Select Region</option>
                                 <option value="india">India</option>
                                 <option value="usa">USA</option>
@@ -150,63 +153,118 @@
                                 <option value="middle-east">Middle East</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-600 mb-2">Coordinates (Auto-filled)</label>
-                            <div class="flex items-center space-x-2">
-                                <input type="text" id="job-coords-display" readonly placeholder="Will be set automatically" class="flex-1 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-xs text-slate-600">
-                                <button type="button" onclick="showCoordinatesInfo()" class="p-3 bg-slate-100 rounded-xl hover:bg-slate-200 transition-all" title="How it works">
-                                    <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </button>
-                            </div>
-                        </div>
                         <!-- Hidden fields for actual lat/lng -->
                         <input type="hidden" id="job-lat" required>
                         <input type="hidden" id="job-lng" required>
                     </div>
-                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <p class="text-xs text-blue-700">
-                            <strong>💡 How it works:</strong> Type your city name and select from suggestions. 
-                            Coordinates will be automatically detected using geocoding service. 
-                            This location will appear on the 3D globe for students!
-                        </p>
-                    </div>
                 </div>
 
                 <div>
-                    <label class="block text-xs font-bold text-slate-600 mb-3">Eligible Branches *</label>
-                    <div class="grid grid-cols-3 gap-3">
-                        <label class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
+                    <label class="block text-xs font-bold text-slate-600 mb-2">Eligible Branches *</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label class="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
                             <input type="checkbox" value="cse" class="branch-checkbox" checked>
-                            <span class="text-sm font-bold">CSE</span>
+                            <span class="text-xs font-bold">CSE</span>
                         </label>
-                        <label class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
+                        <label class="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
                             <input type="checkbox" value="ece" class="branch-checkbox" checked>
-                            <span class="text-sm font-bold">ECE</span>
+                            <span class="text-xs font-bold">ECE</span>
                         </label>
-                        <label class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
+                        <label class="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
                             <input type="checkbox" value="eee" class="branch-checkbox">
-                            <span class="text-sm font-bold">EEE</span>
+                            <span class="text-xs font-bold">EEE</span>
                         </label>
-                        <label class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
+                        <label class="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
                             <input type="checkbox" value="mech" class="branch-checkbox">
-                            <span class="text-sm font-bold">MECH</span>
+                            <span class="text-xs font-bold">MECH</span>
                         </label>
-                        <label class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
+                        <label class="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
                             <input type="checkbox" value="civil" class="branch-checkbox">
-                            <span class="text-sm font-bold">CIVIL</span>
+                            <span class="text-xs font-bold">CIVIL</span>
                         </label>
-                        <label class="flex items-center space-x-2 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
+                        <label class="flex items-center space-x-2 p-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50">
                             <input type="checkbox" value="it" class="branch-checkbox">
-                            <span class="text-sm font-bold">IT</span>
+                            <span class="text-xs font-bold">IT</span>
                         </label>
                     </div>
                 </div>
 
-                <div class="flex space-x-4 mt-6">
-                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-4 rounded-xl font-black uppercase tracking-widest hover:bg-emerald-500 transition-all">Post Job</button>
-                    <button type="button" onclick="closePostJobModal()" class="px-6 bg-slate-100 text-slate-600 py-4 rounded-xl font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancel</button>
+                <div class="flex space-x-3 mt-5">
+                    <button type="submit" class="flex-1 bg-emerald-600 text-white py-3 rounded-lg font-bold text-sm uppercase tracking-wider hover:bg-emerald-500 transition-all">Post Job</button>
+                    <button type="button" onclick="closePostJobModal()" class="px-6 bg-slate-100 text-slate-600 py-3 rounded-lg font-bold text-sm uppercase tracking-wider hover:bg-slate-200 transition-all">Cancel</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Rejection Message Modal -->
+    <div id="reject-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-md w-full">
+            <h2 class="text-2xl font-black text-slate-900 italic mb-4">Rejection Message</h2>
+            <p class="text-sm text-slate-600 mb-4">Provide feedback to the student about why they were not selected.</p>
+            <textarea id="reject-message" rows="4" placeholder="E.g., Your CGPA doesn't meet our requirements, or We're looking for different skill sets..." class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-red-100 resize-none text-sm mb-4"></textarea>
+            <div class="flex space-x-3">
+                <button onclick="confirmReject()" class="flex-1 bg-red-600 text-white py-3 rounded-lg font-bold text-sm uppercase tracking-wider hover:bg-red-500 transition-all">Send & Reject</button>
+                <button onclick="closeRejectModal()" class="px-6 bg-slate-100 text-slate-600 py-3 rounded-lg font-bold text-sm uppercase tracking-wider hover:bg-slate-200 transition-all">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI ATS Assistant View -->
+    <div id="view-ai-ats" class="content-view hidden p-10">
+        <div class="bg-white p-8 rounded-[3rem] shadow-lg flex flex-col max-h-[calc(100vh-180px)]">
+            <div class="mb-6 flex-shrink-0">
+                <h2 class="text-3xl font-black text-slate-900 italic mb-2">AI ATS Resume Assistant</h2>
+                <p class="text-sm text-slate-500">Get AI-powered candidate recommendations and insights from applications</p>
+            </div>
+            
+            <!-- Chat Messages -->
+            <div id="ats-chat-messages" class="flex-1 overflow-y-auto space-y-4 mb-6 custom-scrollbar bg-slate-50 p-4 rounded-2xl" style="min-height: 300px; max-height: 400px;">
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                        </svg>
+                    </div>
+                    <div class="bg-emerald-50 rounded-2xl p-4 max-w-[80%]">
+                        <p class="text-sm text-slate-700">Hello! I'm your AI ATS Resume Assistant. I can help you with:</p>
+                        <ul class="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
+                            <li>Recommend top candidates for your positions</li>
+                            <li>Analyze applicant qualifications and skills</li>
+                            <li>Compare candidates based on CGPA, branch, experience</li>
+                            <li>Suggest best-fit applicants for specific roles</li>
+                            <li>Provide insights on application pool</li>
+                        </ul>
+                        <p class="mt-2 text-sm text-slate-700">What would you like to know about your applicants?</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Suggested Questions -->
+            <div id="ats-suggestions" class="mb-4 flex flex-wrap gap-2 flex-shrink-0">
+                <button onclick="askATS('Who are the top 5 candidates?')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                    Top 5 candidates
+                </button>
+                <button onclick="askATS('Show me CSE branch applicants')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                    CSE applicants
+                </button>
+                <button onclick="askATS('Candidates with CGPA above 8.5')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                    High CGPA candidates
+                </button>
+                <button onclick="askATS('Summarize all applications')" class="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 rounded-xl text-xs font-bold text-emerald-700 transition-all">
+                    Application summary
+                </button>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="flex space-x-3 flex-shrink-0">
+                <input type="text" id="ats-input" placeholder="Ask about candidates, qualifications, or get recommendations..." class="flex-1 px-6 py-4 border-2 border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-medium" onkeypress="if(event.key==='Enter') sendATSMessage()">
+                <button onclick="sendATSMessage()" id="ats-send-btn" class="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black hover:bg-emerald-700 transition-all shadow-lg hover:shadow-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                    </svg>
+                </button>
+            </div>
         </div>
     </div>
 

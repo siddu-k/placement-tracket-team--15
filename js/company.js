@@ -315,7 +315,7 @@ function updateApplicantsList() {
                     ${app.status === 'pending' ? `
                         <div class="flex flex-col gap-2 ml-4">
                             <button onclick="updateStatus('${app.id}', 'accepted')" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-500">Accept</button>
-                            <button onclick="updateStatus('${app.id}', 'rejected')" class="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-500">Reject</button>
+                            <button onclick="showRejectModal('${app.id}', '${app.userId}')" class="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-500">Reject</button>
                         </div>
                     ` : `
                         <span class="text-[10px] font-black uppercase px-4 py-2 rounded-full ${
@@ -343,11 +343,17 @@ window.switchView = function(v) {
     const hMap = {
         dashboard: ['Company Dashboard', 'Manage your recruitment drives'],
         jobs: ['Your Job Postings', 'View and manage all your job posts'],
-        applicants: ['All Applicants', 'Review student applications']
+        applicants: ['All Applicants', 'Review student applications'],
+        'ai-ats': ['AI ATS Assistant', 'Get intelligent candidate recommendations']
     };
     if(hMap[v]) {
         document.getElementById('v-title').innerText = hMap[v][0];
         document.getElementById('v-sub').innerText = hMap[v][1];
+    }
+    
+    // Initialize AI ATS when switching to that view
+    if (v === 'ai-ats') {
+        initATSAssistant();
     }
 }
 
@@ -436,6 +442,68 @@ window.deleteJob = async function(jobId) {
 }
 
 // ========== UPDATE APPLICATION STATUS ==========
+// ========== REJECTION WITH MESSAGE ==========
+let currentRejectAppId = null;
+let currentRejectUserId = null;
+
+window.showRejectModal = function(appId, userId) {
+    currentRejectAppId = appId;
+    currentRejectUserId = userId;
+    document.getElementById('reject-message').value = '';
+    document.getElementById('reject-modal').classList.remove('hidden');
+};
+
+window.closeRejectModal = function() {
+    currentRejectAppId = null;
+    currentRejectUserId = null;
+    document.getElementById('reject-modal').classList.add('hidden');
+};
+
+window.confirmReject = async function() {
+    const message = document.getElementById('reject-message').value.trim();
+    
+    if (!message) {
+        alert('Please provide a rejection message for the student.');
+        return;
+    }
+    
+    if (!currentRejectAppId) return;
+    
+    if (db) {
+        try {
+            // Update application status with rejection message
+            await db.collection('applications').doc(currentRejectAppId).update({
+                status: 'rejected',
+                rejectionMessage: message,
+                rejectedAt: new Date().toISOString(),
+                rejectedBy: companyName
+            });
+            
+            // Optional: Create a notification for the student
+            try {
+                await db.collection('notifications').add({
+                    userId: currentRejectUserId,
+                    type: 'rejection',
+                    title: `Application Rejected - ${companyName}`,
+                    message: message,
+                    from: companyName,
+                    createdAt: new Date().toISOString(),
+                    read: false
+                });
+            } catch (notifError) {
+                console.log('Notification creation failed (non-critical):', notifError);
+            }
+            
+            alert('✅ Application rejected with feedback sent to student!');
+            closeRejectModal();
+            loadMyApplications();
+        } catch (error) {
+            console.error('Error rejecting application:', error);
+            alert('Error rejecting application: ' + error.message);
+        }
+    }
+};
+
 window.updateStatus = async function(appId, status) {
     if (db) {
         try {
@@ -447,6 +515,227 @@ window.updateStatus = async function(appId, status) {
             alert('Error updating application: ' + error.message);
         }
     }
+}
+
+// ========== AI ATS ASSISTANT ==========
+const MIMO_API_KEY = 'sk-sbeq1xsfr6li9541g23fdb7q384t9cfs1atmft2utrtjjjf3';
+const PROXY_URL = 'http://localhost:3001/proxy/xiaomi';
+
+let atsInitialized = false;
+
+function initATSAssistant() {
+    if (atsInitialized) return;
+    atsInitialized = true;
+    console.log('AI ATS Assistant initialized');
+    console.log('Jobs loaded:', myJobs.length);
+    console.log('Applications loaded:', myApplications.length);
+    
+    // Welcome message is now in HTML, no need to add dynamically
+}
+
+window.askATS = function(question) {
+    const input = document.getElementById('ats-input');
+    if (input) {
+        input.value = question;
+        window.sendATSMessage();
+    }
+};
+
+window.sendATSMessage = async function() {
+    const input = document.getElementById('ats-input');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    const chatContainer = document.getElementById('ats-chat-messages');
+    const sendBtn = document.getElementById('ats-send-btn');
+    
+    if (!chatContainer || !sendBtn) {
+        console.error('Chat elements not found');
+        return;
+    }
+    
+    // Add user message
+    addATSChatMessage(message, 'user');
+    input.value = '';
+    
+    // Disable send button
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<svg class="w-6 h-6 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    
+    try {
+        // Reload applications with full student data
+        console.log('Loading applications with student data...');
+        const appsWithStudents = await Promise.all(
+            myApplications.map(async (app) => {
+                if (!app.studentData && app.userId && db) {
+                    try {
+                        const userDoc = await db.collection('users').doc(app.userId).get();
+                        if (userDoc.exists) {
+                            app.studentData = userDoc.data();
+                        }
+                    } catch (err) {
+                        console.error('Error loading student data:', err);
+                    }
+                }
+                return app;
+            })
+        );
+        
+        // Prepare context about applications and jobs
+        const applicationsContext = appsWithStudents.map(app => {
+            const job = myJobs.find(j => j.id === app.companyId);
+            const studentName = app.studentData?.name || 'Unknown';
+            const studentEmail = app.studentData?.email || 'N/A';
+            return `Applicant: ${studentName} (${studentEmail}) | CGPA: ${app.cgpa || app.studentData?.cgpa || 'N/A'} | Branch: ${(app.branch || app.studentData?.branch || 'N/A').toUpperCase()} | Year: ${app.studentData?.year || 'N/A'} | Status: ${app.status} | Position: ${job?.role || 'Unknown'} | Applied: ${new Date(app.appliedAt).toLocaleDateString()} | Reason: ${app.reason?.substring(0, 100) || 'Not provided'}`;
+        }).join('\n');
+        
+        const jobsContext = myJobs.map(j => 
+            `${j.role} - Min CGPA: ${j.minCGPA} | Package: ${j.pkg} LPA | Branches: ${j.branch?.join(', ') || 'All'} | Location: ${j.location}`
+        ).join('\n');
+        
+        const systemPrompt = `You are an expert ATS (Applicant Tracking System) AI assistant for ${companyName}. 
+        
+Your company's open positions:
+${jobsContext || 'No active job postings'}
+
+Applications received (${appsWithStudents.length} total):
+${applicationsContext || 'No applications yet'}
+
+Provide intelligent insights about:
+- Candidate rankings and recommendations
+- Qualification analysis and comparisons
+- Best-fit applicants for specific roles
+- CGPA and branch-based filtering
+- Application status summaries
+
+Be professional, data-driven, and provide actionable recommendations. Format lists clearly with bullet points.`;
+
+        console.log('Sending request to AI...');
+        const response = await fetch(PROXY_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': MIMO_API_KEY
+            },
+            body: JSON.stringify({
+                model: 'mimo-v2-flash',
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: message }
+                ],
+                max_completion_tokens: 1024,
+                temperature: 0.3,
+                top_p: 0.95,
+                stream: false,
+                stop: null,
+                frequency_penalty: 0,
+                presence_penalty: 0,
+                thinking: {
+                    type: 'disabled'
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('API Error Response:', errorData);
+            throw new Error(`AI service error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+        }
+        
+        const data = await response.json();
+        console.log('AI Response received:', data);
+        
+        if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+            console.error('Invalid response structure:', data);
+            throw new Error('Invalid response format from AI service');
+        }
+        
+        const aiResponse = data.choices[0].message.content;
+        
+        if (!aiResponse) {
+            console.error('Empty AI response');
+            throw new Error('Empty response from AI service');
+        }
+        
+        addATSChatMessage(aiResponse, 'ai');
+    } catch (error) {
+        console.error('AI Error Details:', error);
+        let errorMsg = 'Sorry, I couldn\'t process your request. ';
+        
+        if (error.message.includes('Failed to fetch')) {
+            errorMsg += 'Please make sure the local proxy server is running (node local-proxy.js).';
+        } else if (error.message.includes('AI service error')) {
+            errorMsg += 'AI service is unavailable. ' + error.message;
+        } else {
+            errorMsg += error.message;
+        }
+        
+        addATSChatMessage(errorMsg, 'ai');
+    } finally {
+        // Re-enable send button
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>';
+    }
+};
+
+function addATSChatMessage(text, sender) {
+    const chatContainer = document.getElementById('ats-chat-messages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'flex items-start space-x-3';
+    
+    // Format markdown for AI messages
+    let formattedText = sender === 'ai' ? formatMarkdown(text) : escapeHtml(text);
+    
+    if (sender === 'user') {
+        messageDiv.classList.add('flex-row-reverse', 'space-x-reverse');
+        messageDiv.innerHTML = `
+            <div class="w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+            </div>
+            <div class="bg-slate-700 text-white rounded-2xl p-4 max-w-[80%]">
+                <p class="text-sm">${formattedText}</p>
+            </div>
+        `;
+    } else {
+        messageDiv.innerHTML = `
+            <div class="w-10 h-10 bg-emerald-600 rounded-full flex items-center justify-center flex-shrink-0">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                </svg>
+            </div>
+            <div class="bg-emerald-50 rounded-2xl p-4 max-w-[80%]">
+                <div class="text-sm text-slate-700 whitespace-pre-line markdown-content">${formattedText}</div>
+            </div>
+        `;
+    }
+    
+    chatContainer.appendChild(messageDiv);
+    chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatMarkdown(text) {
+    // Escape HTML first
+    let formatted = escapeHtml(text);
+    
+    // Convert markdown to HTML
+    formatted = formatted.replace(/\*\*(.+?)\*\*/g, '<strong class="font-black">$1</strong>');
+    formatted = formatted.replace(/__(.+?)__/g, '<strong class="font-black">$1</strong>');
+    formatted = formatted.replace(/\*(.+?)\*/g, '<em class="italic">$1</em>');
+    formatted = formatted.replace(/_(.+?)_/g, '<em class="italic">$1</em>');
+    formatted = formatted.replace(/^[\-\*]\s+(.+)$/gm, '<li class="ml-4">• $1</li>');
+    formatted = formatted.replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-4">$1</li>');
+    formatted = formatted.replace(/`(.+?)`/g, '<code class="bg-slate-200 px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
+    
+    return formatted;
 }
 
 // ========== LOGOUT ==========

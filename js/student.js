@@ -82,42 +82,66 @@ function updateCoreUI() {
     document.getElementById('stat-i').innerText = COMPANIES.length - eligible.length;
     document.getElementById('cgpa-val').innerText = curCGPA.toFixed(1);
 
-    document.getElementById('mini-list').innerHTML = eligible.slice(0, 3).map(c => `
-        <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
-            <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-blue-900 text-white rounded-lg flex items-center justify-center font-black italic text-xs">${c.name[0]}</div>
-                <p class="font-black text-xs text-slate-800">${c.name}</p>
-            </div>
-            <p class="text-[10px] font-black text-blue-600">${c.package}</p>
-        </div>
-    `).join('');
-
-    document.getElementById('grid-jobs').innerHTML = eligible.map(c => {
-        const isApplied = userApplications.some(app => app.companyId === c.id);
-        const daysLeft = getDaysUntilDeadline(c.deadline);
-        const isUrgent = daysLeft <= 3 && daysLeft >= 0;
-        
-        return `
-        <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
-            ${isUrgent ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-black px-4 py-1 rounded-bl-xl uppercase deadline-urgent">Urgent</div>' : ''}
-            <div class="bg-slate-50 w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl italic text-slate-300 group-hover:bg-blue-900 group-hover:text-white transition-all mb-6 md:mb-8">${c.name[0]}</div>
-            <h4 class="text-lg md:text-xl font-black text-slate-900 italic mb-1">${c.name}</h4>
-            <p class="text-blue-600 font-bold text-sm mb-4">${c.role}</p>
-            <div class="flex items-center space-x-2 mb-6">
-                <span class="text-[9px] font-black uppercase text-slate-400">Deadline:</span>
-                <span class="text-xs font-bold ${isUrgent ? 'text-red-500' : 'text-slate-600'}">${formatDeadline(c.deadline)}</span>
-            </div>
-            <div class="flex justify-between items-end">
-                <div>
-                    <p class="text-[9px] font-black uppercase text-slate-300 mb-1">Package</p>
-                    <p class="text-sm font-black text-slate-800">${c.package}</p>
+    // Mini list (dashboard preview)
+    const miniList = document.getElementById('mini-list');
+    if (eligible.length === 0) {
+        miniList.innerHTML = '<p class="text-center text-slate-400 py-8 text-sm">No job openings available yet. Companies will post opportunities soon!</p>';
+    } else {
+        miniList.innerHTML = eligible.slice(0, 3).map(c => `
+            <div class="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-blue-900 text-white rounded-lg flex items-center justify-center font-black italic text-xs">${c.name[0]}</div>
+                    <p class="font-black text-xs text-slate-800">${c.name}</p>
                 </div>
-                <button onclick="openApplyModal(${c.id})" class="${isApplied ? 'bg-emerald-600' : 'bg-slate-900'} text-white px-4 md:px-5 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all" ${isApplied ? 'disabled' : ''}>
-                    ${isApplied ? '✓ Applied' : 'Apply'}
-                </button>
+                <p class="text-[10px] font-black text-blue-600">${c.package}</p>
             </div>
-        </div>
-    `}).join('');
+        `).join('');
+    }
+
+    // Full job grid
+    const jobGrid = document.getElementById('grid-jobs');
+    if (eligible.length === 0) {
+        jobGrid.innerHTML = `
+            <div class="col-span-full text-center py-20">
+                <div class="bg-slate-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-2">No Job Openings Yet</h3>
+                <p class="text-slate-500 mb-6">Companies haven't posted any opportunities matching your profile yet.</p>
+                <p class="text-sm text-slate-400">✨ Check back soon or improve your CGPA to unlock more opportunities!</p>
+            </div>
+        `;
+    } else {
+        jobGrid.innerHTML = eligible.map(c => {
+            const isApplied = userApplications.some(app => app.companyId === c.id);
+            const daysLeft = getDaysUntilDeadline(c.deadline);
+            const isUrgent = daysLeft <= 3 && daysLeft >= 0;
+            
+            return `
+            <div class="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl transition-all group relative overflow-hidden">
+                ${isUrgent ? '<div class="absolute top-0 right-0 bg-red-500 text-white text-[9px] font-black px-4 py-1 rounded-bl-xl uppercase deadline-urgent">Urgent</div>' : ''}
+                <div class="bg-slate-50 w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl italic text-slate-300 group-hover:bg-blue-900 group-hover:text-white transition-all mb-6 md:mb-8">${c.name[0]}</div>
+                <h4 class="text-lg md:text-xl font-black text-slate-900 italic mb-1">${c.name}</h4>
+                <p class="text-blue-600 font-bold text-sm mb-4">${c.role}</p>
+                <div class="flex items-center space-x-2 mb-6">
+                    <span class="text-[9px] font-black uppercase text-slate-400">Deadline:</span>
+                    <span class="text-xs font-bold ${isUrgent ? 'text-red-500' : 'text-slate-600'}">${formatDeadline(c.deadline)}</span>
+                </div>
+                <div class="flex justify-between items-end">
+                    <div>
+                        <p class="text-[9px] font-black uppercase text-slate-300 mb-1">Package</p>
+                        <p class="text-sm font-black text-slate-800">${c.package}</p>
+                    </div>
+                    <button onclick="openApplyModal(${c.id})" class="${isApplied ? 'bg-emerald-600' : 'bg-slate-900'} text-white px-4 md:px-5 py-2.5 rounded-xl font-black text-[9px] md:text-[10px] uppercase tracking-widest hover:bg-blue-600 transition-all" ${isApplied ? 'disabled' : ''}>
+                        ${isApplied ? '✓ Applied' : 'Apply'}
+                    </button>
+                </div>
+            </div>
+        `}).join('');
+    }
     
     if (markers) updateMapDots(eligible);
 }

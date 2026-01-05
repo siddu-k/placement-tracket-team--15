@@ -114,7 +114,19 @@ function updateJobsList() {
     if (!container) return;
     
     if (myJobs.length === 0) {
-        container.innerHTML = '<p class="col-span-2 text-center text-slate-400 py-10">No jobs posted yet</p>';
+        container.innerHTML = `
+            <div class="col-span-2 text-center py-20">
+                <div class="bg-emerald-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                        <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                    </svg>
+                </div>
+                <h3 class="text-2xl font-black text-slate-800 mb-2">No Job Postings Yet</h3>
+                <p class="text-slate-500 mb-6">Start recruiting by posting your first job opening.</p>
+                <button onclick="showPostJobModal()" class="bg-emerald-600 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest hover:shadow-xl transition-all">Post Your First Job</button>
+            </div>
+        `;
         return;
     }
     
